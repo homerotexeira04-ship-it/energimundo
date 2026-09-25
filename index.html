@@ -983,9 +983,12 @@
     if (!q.length) return;
     var entry = q[0];
     flushing = true;
+    // Never let one stalled request hold the queue: give up after 30 s and retry later.
+    var ctrl = ("AbortController" in window) ? new AbortController() : null;
+    var stallTimer = setTimeout(function(){ if (ctrl) ctrl.abort(); flushing = false; }, 30000);
     // A plain string body is sent as text/plain: a "simple" request, so no CORS preflight.
-    fetch(SURVEY_ENDPOINT, { method:"POST", body: JSON.stringify(entry) })
-      .then(function(r){ return r.json(); })
+    fetch(SURVEY_ENDPOINT, { method:"POST", body: JSON.stringify(entry), signal: ctrl ? ctrl.signal : undefined })
+      .then(function(r){ clearTimeout(stallTimer); return r.json(); })
       .then(function(res){
         var cur = readQueue().filter(function(x){ return x.id !== entry.id; });
         if (!(res && res.ok)){
@@ -1000,7 +1003,7 @@
         flushing = false;
         flushQueue();
       })
-      .catch(function(){ flushing = false; });   // offline / network error: stays queued
+      .catch(function(){ clearTimeout(stallTimer); flushing = false; });   // offline / network error / timeout: stays queued
   }
 
   svForm.addEventListener("submit", function(e){
