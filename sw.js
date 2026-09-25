@@ -1,6 +1,6 @@
 // Energimundo — service worker. Bump CACHE_NAME on every publish so visitors
 // with an already-installed app pick up the new content instead of a stale copy.
-const CACHE_NAME = "energimundo-v21";
+const CACHE_NAME = "energimundo-v22";
 const ASSETS = [
   "./",
   "./index.html",
@@ -10,18 +10,13 @@ const ASSETS = [
   "./icon-192-maskable.png",
   "./icon-512-maskable.png",
   "./apple-touch-icon.png",
-  "./font-ebgaramond-400i.woff2",
-  "./font-ebgaramond-500i.woff2",
-  "./font-ebgaramond-600i.woff2",
-  "./font-worksans-400.woff2",
-  "./font-worksans-500.woff2",
-  "./font-worksans-600.woff2",
-  "./font-worksans-700.woff2",
-  "./font-lexend-600.woff2",
-  "./font-lexend-700.woff2",
+  "./font-leaguespartan-300.woff2",
+  "./font-leaguespartan-400.woff2",
+  "./font-leaguespartan-500.woff2",
   "./font-leaguespartan-600.woff2",
   "./font-leaguespartan-700.woff2",
   "./font-leaguespartan-800.woff2",
+  "./font-leaguespartan-900.woff2",
 ];
 
 self.addEventListener("install", (event) => {
