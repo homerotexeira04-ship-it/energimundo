@@ -1,14 +1,25 @@
 // Energimundo — service worker. Bump CACHE_NAME on every publish so visitors
 // with an already-installed app pick up the new content instead of a stale copy.
-const CACHE_NAME = "energimundo-v19";
+const CACHE_NAME = "energimundo-v20";
 const ASSETS = [
   "./",
   "./index.html",
   "./manifest.json",
   "./icon-192.png",
   "./icon-512.png",
+  "./icon-192-maskable.png",
   "./icon-512-maskable.png",
   "./apple-touch-icon.png",
+  "./font-ebgaramond-400i.woff2",
+  "./font-ebgaramond-500i.woff2",
+  "./font-ebgaramond-600i.woff2",
+  "./font-worksans-400.woff2",
+  "./font-worksans-500.woff2",
+  "./font-worksans-600.woff2",
+  "./font-worksans-700.woff2",
+  "./font-lexend-600.woff2",
+  "./font-lexend-700.woff2",
+  "./font-poppins-800.woff2",
 ];
 
 self.addEventListener("install", (event) => {
@@ -41,21 +52,26 @@ self.addEventListener("activate", (event) => {
 // what makes the app open offline / on flaky wifi), and refresh the cache in
 // the background whenever the network is available.
 self.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET") return;
-  const url = new URL(event.request.url);
+  const req = event.request;
+  if (req.method !== "GET") return;
+  const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
 
+  // Opening the app (home-screen icon, QR link with ?v=..., shortcut) is a page
+  // navigation: always answer with the cached page, whatever the query string.
+  const isPage = req.mode === "navigate";
+
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      const network = fetch(event.request)
+    caches.match(req, { ignoreSearch: isPage }).then((cached) => {
+      const network = fetch(req)
         .then((response) => {
           if (response && response.ok) {
             const copy = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+            caches.open(CACHE_NAME).then((cache) => cache.put(isPage ? "./" : req, copy));
           }
           return response;
         })
-        .catch(() => cached);
+        .catch(() => cached || (isPage ? caches.match("./") : undefined));
       return cached || network;
     })
   );
