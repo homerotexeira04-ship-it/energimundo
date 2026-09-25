@@ -1,7 +1,7 @@
 {
   "name": "Energimundo — Visita Guiada",
   "short_name": "Energimundo",
-  "description": "Visita guiada interactiva del museo Energimundo (Comisión Técnica Mixta de Salto Grande) en español, inglés y portugués.",
+  "description": "Un museo de ciencia y tecnología dedicado a las energías renovables perteneciente a Salto Grande. Visita guiada en español, inglés y portugués.",
   "id": "/",
   "start_url": "./",
   "scope": "./",
