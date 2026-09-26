@@ -1,6 +1,6 @@
 // Energimundo — service worker. Bump CACHE_NAME on every publish so visitors
 // with an already-installed app pick up the new content instead of a stale copy.
-const CACHE_NAME = "energimundo-v25";
+const CACHE_NAME = "energimundo-v26";
 const ASSETS = [
   "./",
   "./index.html",
