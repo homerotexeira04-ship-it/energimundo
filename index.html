@@ -1687,13 +1687,54 @@
   var IDLE_MS = 90000;
   var idleTimer = null;
 
+  // ---- keep kiosk tablets on the latest published version ----
+  // A tablet can sit on this page for days without ever reloading, so a new version on
+  // GitHub would otherwise only show up after the app is closed and reopened (twice, with
+  // the stale-while-revalidate cache). Instead, every idle reset asks the browser to
+  // re-check sw.js; when a new version takes control of the page, the page reloads itself
+  // — but only while nobody is using it: right away if there has been no real input for
+  // IDLE_MS, otherwise at the next idle reset. Never mid-visit. A reload lands in exactly
+  // the state goHome() produces anyway (portada, Spanish, survey cleared); queued survey
+  // answers live in localStorage and are re-sent on load as before.
+  var swHadController = ("serviceWorker" in navigator) && !!navigator.serviceWorker.controller;
+  var swUpdatePending = false;
+  var lastUserInput = Date.now();
+  // real input only: goHome()'s own smooth scroll must not count as "someone is here"
+  ["click","touchstart","keydown","mousemove","wheel"].forEach(function(evt){
+    window.addEventListener(evt, function(){ lastUserInput = Date.now(); }, { passive:true });
+  });
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.addEventListener("controllerchange", function(){
+      // first visit: the service worker just claimed a page that came fresh from the network
+      if (!swHadController) { swHadController = true; return; }
+      if (Date.now() - lastUserInput >= IDLE_MS) reloadForUpdate();
+      else swUpdatePending = true;
+    });
+  }
+  function reloadForUpdate(){
+    // land on the portada, not wherever the browser would restore the scroll to,
+    // and not on a #hash the app may have been opened with (e.g. the survey shortcut)
+    try { history.scrollRestoration = "manual"; } catch (e) {}
+    if (location.hash) history.replaceState(null, "", location.pathname + location.search);
+    window.scrollTo(0, 0);
+    location.reload();
+  }
+  function checkForUpdate(){
+    if (!("serviceWorker" in navigator)) return;
+    navigator.serviceWorker.getRegistration()
+      .then(function(reg){ if (reg) return reg.update(); })
+      .catch(function(){ /* offline: try again at the next idle reset */ });
+  }
+
   function goHome(){
+    if (swUpdatePending) { reloadForUpdate(); return; }
     window.scrollTo({ top:0, behavior:"smooth" });
     if (currentLang !== "es") applyLang("es");
     closeTimeline();
     closeNavPanel();
     installSheet.hidden = true;
     resetSurvey();
+    checkForUpdate();
   }
 
   function resetIdleTimer(){

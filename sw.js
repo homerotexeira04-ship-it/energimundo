@@ -1,6 +1,6 @@
 // Energimundo — service worker. Bump CACHE_NAME on every publish so visitors
 // with an already-installed app pick up the new content instead of a stale copy.
-const CACHE_NAME = "energimundo-v32";
+const CACHE_NAME = "energimundo-v33";
 const ASSETS = [
   "./",
   "./index.html",
@@ -26,7 +26,9 @@ self.addEventListener("install", (event) => {
     caches.open(CACHE_NAME).then((cache) =>
       Promise.all(
         ASSETS.map((url) =>
-          cache.add(url).catch(() => {
+          // cache:"reload" skips the browser's HTTP cache (GitHub Pages sends max-age=600),
+          // so a new version never precaches a copy of index.html that is up to 10 minutes old.
+          cache.add(new Request(url, { cache: "reload" })).catch(() => {
             /* ignore individual asset failures so install never blocks */
           })
         )
