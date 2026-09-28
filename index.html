@@ -96,7 +96,7 @@
     position:sticky; top:env(safe-area-inset-top,0px); z-index:600;
     display:flex; align-items:center; justify-content:space-between;
     gap:12px; padding:10px 18px; min-height:60px;
-    background:rgba(10,10,21,.94); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    background:rgba(10,10,21,.88); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
     border-bottom:1px solid var(--border-dark);
   }
   .brand-mini{ display:flex; align-items:center; gap:9px; min-width:0 }
@@ -118,7 +118,7 @@
     .langswitch button{ padding:8px 11px; min-width:42px }
   }
 
-  /* ---- menu toggle + progress bar ---- */
+  /* ---- menu toggle (animated 3-line -> X) + progress bar ---- */
   .nav-toggle{
     display:flex; align-items:center; justify-content:center;
     width:44px; height:44px; border-radius:50%; flex:none;
@@ -127,30 +127,49 @@
     transition:background .15s ease, border-color .15s ease;
   }
   .nav-toggle:hover{ border-color:var(--muted-dark) }
-  .nav-toggle svg{ width:20px; height:20px }
+  .nav-toggle .hbg{ position:relative; width:20px; height:14px; display:block; pointer-events:none }
+  .nav-toggle .hbg span{
+    position:absolute; left:0; width:100%; height:2px; border-radius:2px; background:currentColor;
+    transition:transform .38s cubic-bezier(.16,1,.3,1), top .38s cubic-bezier(.16,1,.3,1), opacity .2s ease .1s;
+  }
+  .nav-toggle .hbg span:nth-child(1){ top:0 }
+  .nav-toggle .hbg span:nth-child(2){ top:6px }
+  .nav-toggle .hbg span:nth-child(3){ top:12px }
+  .nav-toggle[aria-expanded="true"] .hbg span:nth-child(1){ top:6px; transform:rotate(45deg); transition-delay:.1s,.1s,0s }
+  .nav-toggle[aria-expanded="true"] .hbg span:nth-child(2){ opacity:0; transition-delay:0s }
+  .nav-toggle[aria-expanded="true"] .hbg span:nth-child(3){ top:6px; transform:rotate(-45deg); transition-delay:.1s,.1s,0s }
+  @media (prefers-reduced-motion:reduce){ .nav-toggle .hbg span{ transition:none } }
   .progress-track{
     position:absolute; left:0; right:0; bottom:-1px; height:3px;
     background:rgba(255,255,255,.1); overflow:hidden;
   }
   .progress-fill{ height:100%; width:100%; background:var(--magenta); box-shadow:0 0 8px rgba(223,20,132,.65); transform:scaleX(0); transform-origin:0 50%; transition:transform .12s linear }
 
-  /* ---- nav / tour index panel ---- */
-  .nav-panel{
-    position:fixed; inset:0; z-index:400;
-    background:rgba(6,6,13,.72); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px);
-    display:flex; align-items:flex-start; justify-content:center;
-    padding:calc(env(safe-area-inset-top,0px) + 82px) 18px 18px;
-    overflow-y:auto;
-  }
+  /* ---- nav / tour index: off-canvas drawer sliding in from the right, with a dimmed,
+     blurred overlay behind it. The header (z-index 600) stays above this (400) on
+     purpose, so the language switch keeps working while the drawer is open — see the
+     JS below, which only traps focus in <main>, never in the header. ---- */
+  .nav-panel{ position:fixed; inset:0; z-index:400 }
   .nav-panel[hidden]{ display:none }
-  .nav-panel-inner{
-    width:100%; max-width:520px; background:var(--ink); color:#F3F1EA;
-    border:1px solid var(--border-dark); border-radius:16px; overflow:hidden;
-    box-shadow:0 20px 60px rgba(0,0,0,.4);
+  .nav-overlay{
+    position:absolute; inset:0; border:0; margin:0; padding:0; cursor:default;
+    background:rgba(6,6,13,.6); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px);
+    opacity:0; transition:opacity .38s ease;
   }
+  .nav-panel.open .nav-overlay{ opacity:1 }
+  .nav-drawer{
+    position:absolute; top:calc(65px + env(safe-area-inset-top,0px)); right:0; bottom:0; width:min(380px,85vw);
+    display:flex; flex-direction:column;
+    background:var(--ink); color:#F3F1EA; border-left:1px solid var(--border-dark);
+    box-shadow:-28px 0 70px rgba(0,0,0,.45);
+    transform:translateX(100%);
+    transition:transform .4s cubic-bezier(.16,1,.3,1);
+  }
+  .nav-panel.open .nav-drawer{ transform:translateX(0) }
+  @media (prefers-reduced-motion:reduce){ .nav-overlay, .nav-drawer{ transition:none } }
   .nav-panel-head{
-    display:flex; align-items:center; justify-content:space-between;
-    padding:20px 22px; border-bottom:1px solid var(--border-dark);
+    display:flex; align-items:center; justify-content:space-between; flex:none;
+    padding:20px 20px; border-bottom:1px solid var(--border-dark);
   }
   .nav-panel-head h2{ font-family:var(--font); font-weight:700; font-size:1.45rem; color:#F6F3EC }
   .nav-close{
@@ -161,7 +180,7 @@
   }
   .nav-close svg{ width:18px; height:18px }
   .nav-close:hover{ color:#F3F1EA; border-color:var(--muted-dark) }
-  .nav-list{ display:flex; flex-direction:column; padding:8px 10px; max-height:min(64vh,640px); overflow-y:auto }
+  .nav-list{ flex:1; min-height:0; display:flex; flex-direction:column; padding:8px 10px; overflow-y:auto }
   .nav-item{
     display:flex; align-items:center; gap:16px; width:100%; min-height:58px;
     padding:10px 12px; border-radius:10px; border:none; background:transparent;
@@ -170,7 +189,7 @@
     transition:background .15s ease;
   }
   .nav-item:hover{ background:rgba(255,255,255,.06) }
-  .nav-item.current{ background:rgba(223,20,132,.16) }
+  .nav-item.current{ background:rgba(223,20,132,.16); box-shadow:inset 3px 0 0 var(--magenta) }
   .nav-item .nav-num{
     display:flex; align-items:center; justify-content:center; flex:none;
     width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,.08);
@@ -180,9 +199,34 @@
   .nav-item.current .nav-num{ background:var(--magenta); color:#fff; box-shadow:0 0 12px rgba(223,20,132,.6) }
   .nav-item.current .nav-label{ color:#fff; font-weight:600 }
 
-  .nav-sep{ height:1px; background:var(--border-dark); margin:6px 12px }
-  .nav-item.nav-install .nav-num{ background:rgba(0,168,169,.18); color:var(--teal) }
-  .nav-item.nav-install .nav-num svg{ width:17px; height:17px }
+  /* ---- footer, pinned below the scrollable list: the survey link doubles as the
+     drawer's highlighted call-to-action; "install as an app" (when available) sits
+     under it as a quieter, secondary action ---- */
+  .nav-drawer-foot{
+    flex:none; display:flex; flex-direction:column; gap:10px;
+    padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px)); border-top:1px solid var(--border-dark);
+  }
+  .nav-item.nav-cta{
+    justify-content:center; gap:10px; min-height:54px; border-radius:999px;
+    background:var(--magenta); font-weight:700; font-size:1.05rem; letter-spacing:.01em;
+    box-shadow:0 10px 26px rgba(223,20,132,.35);
+    transition:background .15s ease, box-shadow .15s ease, transform .15s ease;
+  }
+  .nav-item.nav-cta:hover{ background:#C81276 }
+  .nav-item.nav-cta:active{ transform:scale(.98) }
+  .nav-item.nav-cta .nav-num{ width:auto; height:auto; background:none; font-size:1.15rem }
+  .nav-item.nav-cta .nav-label{ color:#fff }
+  .nav-item.nav-install{
+    justify-content:center; gap:10px; min-height:50px; border-radius:999px;
+    border:1px solid var(--border-dark); font-size:1rem;
+    transition:border-color .15s ease, background .15s ease;
+  }
+  .nav-item.nav-install:hover{ border-color:var(--teal); background:rgba(0,168,169,.08) }
+  .nav-item.nav-install .nav-num{ width:auto; height:auto; background:none; color:var(--teal) }
+  .nav-item.nav-install .nav-num svg{ width:18px; height:18px }
+  .nav-sep{ height:1px; background:var(--border-dark) }
+
+  html.nav-lock, html.nav-lock body{ overflow:hidden }
 
   /* ---- install as an app: banner (phones/tablets in the browser) + help sheet ---- */
   .install-banner{
@@ -965,7 +1009,7 @@
   </div>
   <div class="header-right">
     <button type="button" id="navToggle" class="nav-toggle" aria-haspopup="true" aria-expanded="false" aria-controls="navPanel" data-i18n-aria="nav-toggle-aria" aria-label="Abrir índice del recorrido">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+      <span class="hbg" aria-hidden="true"><span></span><span></span><span></span></span>
     </button>
     <div class="langswitch" role="group" data-i18n-aria="aria-lang" aria-label="Selector de idioma">
       <button type="button" data-lang="es" class="active" aria-pressed="true" lang="es" title="Español">ES</button>
@@ -977,9 +1021,10 @@
 </header>
 
 <div class="nav-panel" id="navPanel" hidden>
-  <div class="nav-panel-inner">
+  <button type="button" class="nav-overlay" id="navOverlay" tabindex="-1" data-i18n-aria="nav-close-aria" aria-label="Cerrar índice"></button>
+  <div class="nav-drawer" role="dialog" aria-modal="true" aria-labelledby="navPanelTitle">
     <div class="nav-panel-head">
-      <h2 data-i18n="nav-title">Recorrido</h2>
+      <h2 id="navPanelTitle" data-i18n="nav-title">Recorrido</h2>
       <button type="button" id="navClose" class="nav-close" data-i18n-aria="nav-close-aria" aria-label="Cerrar índice">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="5" x2="19" y2="19"/><line x1="19" y1="5" x2="5" y2="19"/></svg>
       </button>
@@ -997,10 +1042,12 @@
       <button type="button" class="nav-item" data-target="sec-05c"><span class="nav-num">05</span><span class="nav-label" data-i18n="h-05c">Biomasa, Geotérmica y Marina</span></button>
       <button type="button" class="nav-item" data-target="sec-06"><span class="nav-num">06</span><span class="nav-label" data-i18n="h-06">Cronomundo</span></button>
       <button type="button" class="nav-item" data-target="sec-07"><span class="nav-num">07</span><span class="nav-label" data-i18n="h-07">Cine Geodésico</span></button>
-      <button type="button" class="nav-item" data-target="survey"><span class="nav-num" aria-hidden="true">★</span><span class="nav-label" data-i18n="sv-kicker">Tu opinión</span></button>
+    </nav>
+    <div class="nav-drawer-foot">
       <div class="nav-sep" id="navInstallSep" hidden></div>
       <button type="button" class="nav-item nav-install" id="navInstall" hidden><span class="nav-num" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 20h14"/></svg></span><span class="nav-label" data-i18n="inst-nav">Instalar como app</span></button>
-    </nav>
+      <button type="button" class="nav-item nav-cta" data-target="survey"><span class="nav-num" aria-hidden="true">★</span><span class="nav-label" data-i18n="sv-kicker">Tu opinión</span></button>
+    </div>
   </div>
 </div>
 
@@ -1866,27 +1913,67 @@
   window.addEventListener("load", updateProgress);
   window.addEventListener("resize", function(){ if (!ticking){ window.requestAnimationFrame(updateBacktop); ticking = true; } }, { passive:true });
 
-  // ---- tour index panel (menu button in header) ----
+  // ---- tour index panel (off-canvas slide drawer, menu button in header) ----
   var navToggle = document.getElementById("navToggle");
   var navPanel = document.getElementById("navPanel");
+  var navDrawer = navPanel.querySelector(".nav-drawer");
+  var navOverlay = document.getElementById("navOverlay");
   var navClose = document.getElementById("navClose");
   var navItems = Array.prototype.slice.call(document.querySelectorAll(".nav-item"));
+  var navBackground = [document.getElementById("top"), document.getElementById("backtop")].filter(Boolean);
+  var navOpen = false;
+  var navCloseTimer = null;
 
+  function navKeydown(e){
+    if (e.key === "Escape" || e.key === "Esc") closeNavPanel();
+  }
   function openNavPanel(){
+    if (navOpen) return;
+    navOpen = true;
+    if (navCloseTimer){ clearTimeout(navCloseTimer); navCloseTimer = null; }
     navPanel.hidden = false;
+    void navPanel.offsetWidth; // force layout so the open transition always runs
+    requestAnimationFrame(function(){ navPanel.classList.add("open"); });
     navToggle.setAttribute("aria-expanded", "true");
+    document.documentElement.classList.add("nav-lock");
+    navBackground.forEach(function(el){ el.setAttribute("aria-hidden", "true"); el.inert = true; });
+    document.addEventListener("keydown", navKeydown);
+    if (navClose && navClose.focus) navClose.focus({ preventScroll:true });
   }
   function closeNavPanel(){
-    navPanel.hidden = true;
+    if (!navOpen) return;
+    navOpen = false;
+    var returnFocus = navPanel.contains(document.activeElement);
+    navPanel.classList.remove("open");
     navToggle.setAttribute("aria-expanded", "false");
+    document.documentElement.classList.remove("nav-lock");
+    navBackground.forEach(function(el){ el.removeAttribute("aria-hidden"); el.inert = false; });
+    document.removeEventListener("keydown", navKeydown);
+    if (returnFocus && navToggle.focus) navToggle.focus({ preventScroll:true });
+    if (navCloseTimer) clearTimeout(navCloseTimer);
+    var done = false;
+    var onEnd = function(e){
+      if (e.target !== navDrawer || e.propertyName !== "transform") return;
+      if (done) return;
+      done = true;
+      navDrawer.removeEventListener("transitionend", onEnd);
+      if (navCloseTimer){ clearTimeout(navCloseTimer); navCloseTimer = null; }
+      navPanel.hidden = true;
+    };
+    navDrawer.addEventListener("transitionend", onEnd);
+    navCloseTimer = setTimeout(function(){
+      if (done) return;
+      done = true;
+      navDrawer.removeEventListener("transitionend", onEnd);
+      navCloseTimer = null;
+      navPanel.hidden = true;
+    }, 500);
   }
   navToggle.addEventListener("click", function(){
-    if (navPanel.hidden) openNavPanel(); else closeNavPanel();
+    if (navOpen) closeNavPanel(); else openNavPanel();
   });
   navClose.addEventListener("click", closeNavPanel);
-  navPanel.addEventListener("click", function(e){
-    if (e.target === navPanel) closeNavPanel();
-  });
+  navOverlay.addEventListener("click", closeNavPanel);
   navItems.forEach(function(btn){
     btn.addEventListener("click", function(){
       var target = document.getElementById(btn.getAttribute("data-target"));
