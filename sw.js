@@ -1,6 +1,6 @@
 // Energimundo — service worker. Bump CACHE_NAME on every publish so visitors
 // with an already-installed app pick up the new content instead of a stale copy.
-const CACHE_NAME = "energimundo-v33";
+const CACHE_NAME = "energimundo-v34";
 const ASSETS = [
   "./",
   "./index.html",
@@ -18,6 +18,21 @@ const ASSETS = [
   "./font-leaguespartan-800.woff2",
   "./font-leaguespartan-900.woff2",
   "./font-jetbrainsmono-700.woff2",
+  // photos and logos (separate files since v34; generate.py refuses to build if one is missing here)
+  "./img-logo-icon-sq.png",
+  "./img-logo-saltogrande-sm.png",
+  "./img-energimundo-building.jpg",
+  "./img-plasma-ball-crop.jpg",
+  "./img-history-timeline.png",
+  "./img-interactive-room.jpg",
+  "./img-interactive-inset.jpg",
+  "./img-hydropower-room.jpg",
+  "./img-binational-hq.jpg",
+  "./img-solar-model.jpg",
+  "./img-wind-eolica-hq.jpg",
+  "./img-biomass-wall.jpg",
+  "./img-cronomundo-hq.jpg",
+  "./img-timeline-icons.jpg",
 ];
 
 self.addEventListener("install", (event) => {
