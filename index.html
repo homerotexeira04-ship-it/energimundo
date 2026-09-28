@@ -132,7 +132,7 @@
     position:absolute; left:0; right:0; bottom:-1px; height:3px;
     background:rgba(255,255,255,.1); overflow:hidden;
   }
-  .progress-fill{ height:100%; width:0%; background:var(--magenta); box-shadow:0 0 8px rgba(223,20,132,.65); transition:width .12s linear }
+  .progress-fill{ height:100%; width:100%; background:var(--magenta); box-shadow:0 0 8px rgba(223,20,132,.65); transform:scaleX(0); transform-origin:0 50%; transition:transform .12s linear }
 
   /* ---- nav / tour index panel ---- */
   .nav-panel{
@@ -968,9 +968,9 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
     </button>
     <div class="langswitch" role="group" data-i18n-aria="aria-lang" aria-label="Selector de idioma">
-      <button type="button" data-lang="es" class="active">ES</button>
-      <button type="button" data-lang="en">EN</button>
-      <button type="button" data-lang="pt">PT</button>
+      <button type="button" data-lang="es" class="active" aria-pressed="true" lang="es" title="Español">ES</button>
+      <button type="button" data-lang="en" aria-pressed="false" lang="en" title="English">EN</button>
+      <button type="button" data-lang="pt" aria-pressed="false" lang="pt-BR" title="Português">PT</button>
     </div>
   </div>
   <div class="progress-track" aria-hidden="true"><div class="progress-fill" id="progressFill"></div></div>
@@ -984,7 +984,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="5" x2="19" y2="19"/><line x1="19" y1="5" x2="5" y2="19"/></svg>
       </button>
     </div>
-    <nav class="nav-list" aria-label="Recorrido">
+    <nav class="nav-list" data-i18n-aria="nav-title" aria-label="Recorrido">
       <button type="button" class="nav-item" data-target="sec-cover"><span class="nav-num" aria-hidden="true">⌂</span><span class="nav-label" data-i18n="nav-cover">Inicio</span></button>
       <button type="button" class="nav-item" data-target="sec-00"><span class="nav-num">00</span><span class="nav-label" data-i18n="h-00">Bienvenidos</span></button>
       <button type="button" class="nav-item" data-target="sec-stat"><span class="nav-num">i</span><span class="nav-label" data-i18n="k-stat">¿Sabías que...?</span></button>
@@ -1058,7 +1058,7 @@
 
 <!-- ============ 00 — WELCOME ============ -->
 <section class="section paper" id="sec-00">
-  <div class="hero"><img data-img="welcome" src="img-energimundo-building.jpg" width="1400" height="596" decoding="async" data-i18n-alt="alt-00" alt="Fachada del edificio de Energimundo, con su estructura de cables y el cartel del museo"></div>
+  <div class="hero"><img data-img="welcome" src="img-energimundo-building.jpg" width="1400" height="596" decoding="async" fetchpriority="high" data-i18n-alt="alt-00" alt="Fachada del edificio de Energimundo, con su estructura de cables y el cartel del museo"></div>
   <div class="content-inner">
     <div class="kicker"><div class="badge" style="background:var(--magenta)">00</div><div class="label" data-i18n="k-00">Bienvenida</div><div class="rule"></div></div>
     <h1 class="disp" data-i18n="h-00">Bienvenidos</h1>
@@ -1565,9 +1565,9 @@
         <h2 class="tl-title" id="tlTitle" data-i18n="h-02">Historia de la Energía</h2>
       </div>
       <div class="langswitch" role="group" data-i18n-aria="aria-lang" aria-label="Selector de idioma">
-        <button type="button" data-lang="es" class="active">ES</button>
-        <button type="button" data-lang="en">EN</button>
-        <button type="button" data-lang="pt">PT</button>
+        <button type="button" data-lang="es" class="active" aria-pressed="true" lang="es" title="Español">ES</button>
+        <button type="button" data-lang="en" aria-pressed="false" lang="en" title="English">EN</button>
+        <button type="button" data-lang="pt" aria-pressed="false" lang="pt-BR" title="Português">PT</button>
       </div>
       <button type="button" class="tl-close" id="tlClose" data-i18n-aria="tl-close" aria-label="Cerrar la línea de tiempo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
@@ -1827,6 +1827,7 @@
 
     document.querySelectorAll(".langswitch button").forEach(function(btn){
       btn.classList.toggle("active", btn.getAttribute("data-lang") === lang);
+      btn.setAttribute("aria-pressed", String(btn.getAttribute("data-lang") === lang));
     });
   }
 
@@ -1845,7 +1846,7 @@
     var doc = document.documentElement;
     var max = doc.scrollHeight - doc.clientHeight;
     var pct = max > 0 ? Math.min(100, Math.max(0, (window.scrollY / max) * 100)) : 0;
-    progressFill.style.width = pct + "%";
+    progressFill.style.transform = "scaleX(" + (pct / 100).toFixed(4) + ")";   // compositor-only, no layout per scroll frame
   }
   function updateBacktop(){
     ticking = false;
@@ -1859,7 +1860,11 @@
   backtop.addEventListener("click", function(){
     window.scrollTo({ top:0, behavior:"smooth" });
   });
-  updateProgress();
+  // first measurement after the first paint (reading scrollHeight during start-up forced a full layout
+  // before anything was on screen); the page also grows while photos load, so re-measure on load/resize
+  requestAnimationFrame(updateProgress);
+  window.addEventListener("load", updateProgress);
+  window.addEventListener("resize", function(){ if (!ticking){ window.requestAnimationFrame(updateBacktop); ticking = true; } }, { passive:true });
 
   // ---- tour index panel (menu button in header) ----
   var navToggle = document.getElementById("navToggle");
@@ -2371,8 +2376,9 @@
     cv.addEventListener("pointermove", function(e){ if (e.pointerType === "mouse" && !e.buttons) return; setTouch(e); redraw(); });
     ["pointerup","pointercancel","lostpointercapture"].forEach(function(ev){ cv.addEventListener(ev, function(e){ delete touches[e.pointerId]; redraw(); }); });
     watchLive(stage, function(on){ live = on; last = 0; if (on) kick(); });
-    if (window.ResizeObserver) new ResizeObserver(size).observe(stage); else window.addEventListener("resize", size);
-    size();
+    // ResizeObserver reports the first size itself (after layout, before paint): calling size()
+    // here too would force a synchronous layout of the whole page during start-up
+    if (window.ResizeObserver) new ResizeObserver(size).observe(stage); else { window.addEventListener("resize", size); size(); }
     vizHooks.push({ reset: function(){ touches = {}; } });
   })();
 
