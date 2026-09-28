@@ -19,10 +19,16 @@
 <link rel="preload" href="font-leaguespartan-700.woff2" as="font" type="font/woff2" crossorigin>
 <style>
   /* One family, many weights: 300 light leads · 400 reading text · 500 UI text & quotes ·
-     600 labels, eyebrows & buttons · 700 titles (bold) · 800-900 display figures. */
-  :root{ --font:"League Spartan",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; --title-font:var(--font) }
+     600 labels, eyebrows & buttons · 700 titles (bold) · 900 the cover wordmark.
+     A second, monospaced face (JetBrains Mono, 700 only) is reserved strictly for readouts —
+     room/era/step numbers, the 98% figure, the energy-mix percentages, the timeline years —
+     the "control-room" register: the numbers a technician would read off an instrument,
+     set apart from League Spartan's editorial voice used for everything else. Numbers inside
+     running text (e.g. "45°C" in a paragraph) stay in League Spartan on purpose. */
+  :root{ --font:"League Spartan",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; --title-font:var(--font); --font-mono:"JetBrains Mono","SF Mono",Consolas,monospace }
   /* Fonts are shipped with the app (not loaded from Google), so the installed app
      looks right offline too. All are SIL Open Font License. */
+  @font-face{ font-family:"JetBrains Mono"; font-style:normal; font-weight:700; font-display:swap; src:url("font-jetbrainsmono-700.woff2") format("woff2") }
   @font-face{ font-family:"League Spartan"; font-style:normal; font-weight:300; font-display:swap; src:url("font-leaguespartan-300.woff2") format("woff2") }
   @font-face{ font-family:"League Spartan"; font-style:normal; font-weight:400; font-display:swap; src:url("font-leaguespartan-400.woff2") format("woff2") }
   @font-face{ font-family:"League Spartan"; font-style:normal; font-weight:500; font-display:swap; src:url("font-leaguespartan-500.woff2") format("woff2") }
@@ -118,7 +124,7 @@
     position:absolute; left:0; right:0; bottom:-1px; height:3px;
     background:rgba(255,255,255,.1); overflow:hidden;
   }
-  .progress-fill{ height:100%; width:0%; background:var(--magenta); transition:width .12s linear }
+  .progress-fill{ height:100%; width:0%; background:var(--magenta); box-shadow:0 0 8px rgba(223,20,132,.65); transition:width .12s linear }
 
   /* ---- nav / tour index panel ---- */
   .nav-panel{
@@ -160,9 +166,10 @@
   .nav-item .nav-num{
     display:flex; align-items:center; justify-content:center; flex:none;
     width:32px; height:32px; border-radius:50%; background:rgba(255,255,255,.08);
-    font-family:var(--font); font-weight:700; font-size:.82rem; color:var(--muted-dark);
+    font-family:var(--font-mono); font-weight:700; font-size:.76rem; color:var(--muted-dark);
+    transition:box-shadow .15s ease;
   }
-  .nav-item.current .nav-num{ background:var(--magenta); color:#fff }
+  .nav-item.current .nav-num{ background:var(--magenta); color:#fff; box-shadow:0 0 12px rgba(223,20,132,.6) }
   .nav-item.current .nav-label{ color:#fff; font-weight:600 }
 
   .nav-sep{ height:1px; background:var(--border-dark); margin:6px 12px }
@@ -219,7 +226,7 @@
   .install-steps li{ display:flex; gap:14px; align-items:flex-start; font-family:var(--font); font-size:1.08rem; line-height:1.45; color:var(--body-on-dark) }
   .install-steps .st-num{
     flex:none; width:30px; height:30px; border-radius:50%; background:rgba(223,20,132,.18); color:var(--magenta);
-    display:flex; align-items:center; justify-content:center; font-family:var(--font); font-weight:700; font-size:.9rem; margin-top:1px;
+    display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-weight:700; font-size:.84rem; margin-top:1px;
   }
   .install-steps b{ color:#F6F3EC; font-weight:600 }
   .install-steps .share-glyph{ display:inline-block; width:20px; height:20px; vertical-align:-4px; margin:0 2px; color:var(--teal) }
@@ -233,6 +240,55 @@
   .section.paper{ background:var(--paper) }
   .section.blush{ background:var(--blush) }
   .section.tealbg{ background:var(--tealbg) }
+
+  /* Atmospheric depth on every section, tuned per background: strong brand-hex mesh +
+     grid on the two dark "sala" sections; the same pattern at ~1/3 opacity, in ink
+     instead of white, on paper/blush, so the long reading passages there keep their
+     verified WCAG contrast while still feeling like part of one designed world rather
+     than a flat page break. ::before behind everything; isolation:isolate pins the
+     negative z-index to this section instead of letting it escape to the page
+     stacking context. Pure background-image — no size/layout cost. Deliberately no
+     overflow:hidden here: the layer is inset:0 so it never overflows, and hidden would
+     turn every section into a scroll container that scrollIntoView() (menu → survey)
+     could nudge internally. */
+  .section.dark, .section.tealbg, .section.paper, .section.blush{ isolation:isolate }
+  .section.dark::before, .section.tealbg::before, .section.paper::before, .section.blush::before{
+    content:""; position:absolute; inset:0; z-index:-1; pointer-events:none;
+  }
+  .section.dark::before{
+    background-image:
+      radial-gradient(ellipse 900px 620px at 6% -12%, rgba(223,20,132,.17), transparent 60%),
+      radial-gradient(ellipse 820px 700px at 102% 12%, rgba(0,168,169,.15), transparent 55%),
+      radial-gradient(ellipse 720px 600px at 18% 108%, rgba(114,49,138,.19), transparent 60%),
+      linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+    background-size:auto,auto,auto,46px 46px,46px 46px;
+  }
+  .section.tealbg::before{
+    background-image:
+      radial-gradient(ellipse 860px 660px at 94% -10%, rgba(240,128,19,.17), transparent 58%),
+      radial-gradient(ellipse 760px 600px at 2% 32%, rgba(148,193,31,.14), transparent 55%),
+      radial-gradient(ellipse 700px 650px at 28% 110%, rgba(223,20,132,.13), transparent 60%),
+      linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+    background-size:auto,auto,auto,46px 46px,46px 46px;
+  }
+  .section.paper::before{
+    background-image:
+      radial-gradient(ellipse 800px 600px at 96% -10%, rgba(0,168,169,.07), transparent 55%),
+      radial-gradient(ellipse 700px 620px at 2% 106%, rgba(223,20,132,.06), transparent 58%),
+      linear-gradient(rgba(20,22,31,.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(20,22,31,.03) 1px, transparent 1px);
+    background-size:auto,auto,46px 46px,46px 46px;
+  }
+  .section.blush::before{
+    background-image:
+      radial-gradient(ellipse 820px 640px at 94% -8%, rgba(240,128,19,.07), transparent 55%),
+      radial-gradient(ellipse 700px 600px at 4% 108%, rgba(114,49,138,.06), transparent 58%),
+      linear-gradient(rgba(20,22,31,.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(20,22,31,.03) 1px, transparent 1px);
+    background-size:auto,auto,46px 46px,46px 46px;
+  }
 
   .hero{ width:100%; overflow:hidden; background:#000; height:clamp(220px,40vw,440px); }
   .hero img{ width:100%; height:100%; object-fit:cover; display:block }
@@ -273,7 +329,16 @@
   .kicker{ display:flex; align-items:center; gap:10px; margin-bottom:22px }
   .kicker .badge{
     width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center;
-    font-family:var(--font); font-weight:700; font-size:.92rem; color:#fff; flex:none
+    font-family:var(--font-mono); font-weight:700; font-size:.86rem; color:#fff; flex:none;
+    position:relative; z-index:1;
+  }
+  /* 21st.dev-style ambient glow ring: a soft halo that always reads as "instrument readout",
+     not a hover effect — the museum's tablets are touch-only, so nothing here waits for a
+     pointer. Cheap (opacity+blur only, no JS, no layout) and static enough not to distract
+     from the text beside it. */
+  .kicker .badge::before{
+    content:""; position:absolute; inset:-7px; border-radius:50%; z-index:-1;
+    background:inherit; filter:blur(9px); opacity:.55;
   }
   .kicker .label{ font-family:var(--font); font-weight:600; font-size:.98rem; letter-spacing:.14em; text-transform:uppercase; color:var(--muted) }
   .kicker .rule{ flex:1; height:1px; background:var(--border-light) }
@@ -294,10 +359,23 @@
   .body-copy p:last-child{ margin-bottom:0 }
 
   .callout{
+    --co-pad:18px;
     border-top:1.5px solid var(--accent,var(--magenta)); border-bottom:1.5px solid var(--accent,var(--magenta));
-    padding:20px 0; margin:16px 0 24px 0; max-width:660px;
+    padding:20px var(--co-pad); margin:16px calc(-1 * var(--co-pad)) 24px;
+    /* A static tint in the callout's own accent, not a glow — reads as "highlighted",
+       not "animated", so it can sit on every callout without the fatigue a moving
+       effect would cause across a text-heavy page. Falls back to no tint on browsers
+       without color-mix(); the border alone (already there) carries the callout either way.
+       The band spans the whole text column and hangs --co-pad past it on both sides
+       (negative margin = padding), so the callout's text stays flush with the paragraphs
+       around it without touching the edge of its own tint, and the band is always
+       symmetric. Below 760px --co-pad equals the .content-inner gutter, so on phones the
+       band runs exactly edge to edge. The reading measure stays capped on the <p>. */
+    background:color-mix(in srgb, var(--accent,var(--magenta)) 6%, transparent);
   }
-  .callout p{ font-family:var(--font); font-weight:600; font-size:1.4rem; line-height:1.4; color:var(--ink-body); margin:0 }
+  @media (max-width:760px){ .callout{ --co-pad:22px } }
+  @media (max-width:420px){ .callout{ --co-pad:18px } }
+  .callout p{ font-family:var(--font); font-weight:600; font-size:1.4rem; line-height:1.4; color:var(--ink-body); margin:0; max-width:660px }
   .dark .callout p, .tealbg .callout p{ color:#F3F1EA }
 
   .note-row{ display:flex; align-items:center; gap:14px; margin-top:32px; padding-top:24px; border-top:1px solid var(--border-light) }
@@ -305,15 +383,29 @@
   .note-row p{ font-family:var(--font); font-style:normal; font-weight:500; font-size:1.36rem; line-height:1.4; color:var(--ink-body); max-width:600px }
 
   /* ---- STAT / DID-YOU-KNOW ---- */
-  .stat-row{ display:flex; align-items:flex-end; gap:24px; flex-wrap:wrap; margin-bottom:36px }
-  .stat-num{ font-family:var(--font); font-weight:900; font-size:clamp(5.6rem,15vw,8.6rem); color:var(--orange); line-height:.8; letter-spacing:-.03em }
+  .stat-row{ display:flex; align-items:flex-end; gap:24px; flex-wrap:wrap; margin-bottom:36px; position:relative }
+  /* The 98% figure is this page's one "instrument readout" moment: mono face
+     (a real number, not a headline), plus a slow ambient glow behind it —
+     always on, never pointer-triggered, so it reads the same on the kiosk
+     tablets as on a phone. */
+  .stat-num{
+    font-family:var(--font-mono); font-weight:700; font-size:clamp(4.9rem,13vw,7.4rem);
+    color:var(--orange); line-height:.82; letter-spacing:-.02em; position:relative; z-index:1;
+  }
+  .stat-num::before{
+    content:""; position:absolute; left:-12%; right:-12%; top:-18%; bottom:-18%; z-index:-1;
+    background:radial-gradient(circle at 30% 50%, var(--orange) 0%, transparent 68%);
+    opacity:.22; filter:blur(28px); animation:statGlow 5s ease-in-out infinite;
+  }
+  @keyframes statGlow{ 0%,100%{ opacity:.16; transform:scale(1) } 50%{ opacity:.3; transform:scale(1.08) } }
+  @media (prefers-reduced-motion:reduce){ .stat-num::before{ animation:none; opacity:.2 } }
   .stat-desc{ font-family:var(--font); font-weight:300; font-size:1.45rem; line-height:1.3; color:var(--body-on-dark); max-width:300px; padding-bottom:10px }
   .mix-title{ font-family:var(--font); font-weight:700; font-size:1.5rem; color:#F6F3EC; margin-bottom:26px }
   .bar-row{ display:flex; align-items:center; gap:14px; margin-bottom:16px }
   .bar-row .blabel{ font-family:var(--font); font-weight:500; font-size:1.18rem; color:var(--body-on-dark); width:142px; flex:none }
   .bar-row .btrack{ flex:1; height:10px; border-radius:6px; background:var(--track); overflow:hidden }
   .bar-row .bfill{ height:100%; border-radius:6px }
-  .bar-row .bpct{ font-family:var(--font); font-weight:800; font-size:1.18rem; width:54px; text-align:right; flex:none }
+  .bar-row .bpct{ font-family:var(--font-mono); font-weight:700; font-size:1.12rem; width:54px; text-align:right; flex:none }
   .stat-foot{ font-family:var(--font); font-weight:300; font-size:1.32rem; line-height:1.5; color:var(--body-on-dark); max-width:600px; margin-top:32px }
   @media (max-width:480px){ .bar-row .blabel{ width:108px; font-size:1.05rem } }
 
@@ -321,7 +413,7 @@
   .item-row{ display:grid; grid-template-columns:minmax(0,300px) 1fr; gap:32px; align-items:start; padding:34px 0; border-bottom:1px solid var(--border-light) }
   .item-row:last-child{ border-bottom:none; padding-bottom:0 }
   .item-row:first-child{ padding-top:0 }
-  .item-row .photo{ border-radius:8px; overflow:hidden; height:220px; background:#000 }
+  .item-row .photo{ border-radius:10px; overflow:hidden; height:220px; background:#000; border:1px solid rgba(20,22,31,.08) }
   .item-row .photo img{ width:100%; height:100%; object-fit:cover; display:block }
   .item-row .photo.tall{ height:280px }
   .item-row .thermo-circle{ width:76px; height:76px; border-radius:50%; background:#EDEAE3; display:flex; align-items:center; justify-content:center; font-size:2.1rem; flex:none }
@@ -329,7 +421,9 @@
   .item-label .emoji{ font-size:1.4rem; line-height:1 }
   .item-label span{ font-family:var(--font); font-weight:700; font-size:1rem; letter-spacing:.12em; text-transform:uppercase; text-decoration:none; color:var(--ink-body) }
   .item-row .body-copy p{ font-size:1.24rem; max-width:none }
-  .item-row .callout{ margin:12px 0 0 0 }
+  /* Inside a Sala 5 photo+text row the callout is a contained card within its own column
+     (no hang): hanging it would bleed it to the screen edge on one side only. */
+  .item-row .callout{ --co-pad:16px; margin:12px 0 0 }
   .item-row .callout p{ font-size:1.24rem }
   @media (max-width:680px){
     .item-row{ grid-template-columns:1fr; gap:16px }
@@ -353,6 +447,19 @@
   .cover-footer-top{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:0 28px 18px; max-width:660px; margin:0 auto }
   .cover-footer-bottom{ padding:16px 28px 34px; border-top:1px solid var(--border-dark); max-width:660px; margin:0 auto }
   .cover-footer-bottom span{ font-family:var(--font); font-weight:500; font-size:.98rem; color:var(--muted-dark); letter-spacing:.03em }
+
+  /* ---- cover entrance: one orchestrated sequence, plays once on load ----
+     Staggered fade-up down the reading order (eyebrow → icon → wordmark →
+     subtitle → body → footer). Short (~1.1s total) so it never feels like a
+     wait. Runs once at load only — the portada also re-displays after the
+     kiosk's 90s inactivity reset, and re-animating on every scroll-back would
+     read as laggy rather than intentional, so it simply holds its finished
+     state there instead of replaying. */
+  @keyframes coverIn{ from{ opacity:0; transform:translateY(22px) } to{ opacity:1; transform:translateY(0) } }
+  .cv-in{ opacity:0; animation:coverIn .9s cubic-bezier(.16,1,.3,1) forwards }
+  .cv-d1{ animation-delay:.05s } .cv-d2{ animation-delay:.16s } .cv-d3{ animation-delay:.27s }
+  .cv-d4{ animation-delay:.38s } .cv-d5{ animation-delay:.5s } .cv-d6{ animation-delay:.62s }
+  @media (prefers-reduced-motion:reduce){ .cv-in{ animation:none; opacity:1; transform:none } }
   .brand-row{ display:flex; align-items:center; gap:9px }
   .brand-row img{ width:22px; height:22px; display:block }
   .brand-row span{ font-family:var(--font); font-weight:700; font-size:.98rem; letter-spacing:.04em; color:#F3F1EA }
@@ -483,6 +590,18 @@
   .tl-overlay{
     position:fixed; inset:0; z-index:650; display:flex; flex-direction:column;
     background:#07070F; color:#F3F1EA; animation:tlIn .22s ease-out;
+    isolation:isolate;
+  }
+  /* Same control-room mesh as the rest of the dark sections, a touch dimmer since this
+     screen is read up close and scrolled for minutes at a time. */
+  .tl-overlay::before{
+    content:""; position:absolute; inset:0; z-index:-1; pointer-events:none;
+    background-image:
+      radial-gradient(ellipse 900px 700px at 92% -8%, rgba(0,168,169,.11), transparent 58%),
+      radial-gradient(ellipse 800px 650px at 4% 102%, rgba(223,20,132,.10), transparent 58%),
+      linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
+    background-size:auto,auto,46px 46px,46px 46px;
   }
   @keyframes tlIn{ from{ opacity:0; transform:translateY(14px) } to{ opacity:1; transform:none } }
   .tl-top{
@@ -527,7 +646,12 @@
   .tl-era-head{ display:flex; align-items:center; gap:12px; margin-bottom:6px }
   .tl-era-num{
     flex:none; width:34px; height:34px; border-radius:50%; background:var(--era); color:var(--ink);
-    display:flex; align-items:center; justify-content:center; font-weight:800; font-size:1.05rem; padding-top:2px;
+    display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-weight:700; font-size:.98rem;
+    position:relative; z-index:1;
+  }
+  .tl-era-num::before{
+    content:""; position:absolute; inset:-7px; border-radius:50%; z-index:-1;
+    background:inherit; filter:blur(9px); opacity:.5;
   }
   .tl-era-title{ font-weight:700; font-size:clamp(1.25rem,4.4vw,1.6rem); line-height:1.15; color:var(--era); text-wrap:balance }
   .tl-list{ list-style:none; position:relative }
@@ -541,7 +665,7 @@
   .tl-date{ display:flex; align-items:baseline; flex-wrap:wrap; column-gap:7px; row-gap:0; line-height:1; margin-top:4px }
   .tl-pre{ font-weight:600; font-size:.8rem; letter-spacing:.1em; text-transform:uppercase; color:var(--muted-dark) }
   .tl-pre:empty, .tl-unit:empty{ display:none }
-  .tl-num{ font-weight:800; font-size:2rem; letter-spacing:-.01em; color:var(--era); font-variant-numeric:tabular-nums }
+  .tl-num{ font-family:var(--font-mono); font-weight:700; font-size:1.86rem; letter-spacing:-.01em; color:var(--era); font-variant-numeric:tabular-nums }
   .tl-unit{ font-weight:500; font-size:.98rem; color:var(--muted-dark) }
   .tl-text{ margin-top:8px; font-weight:400; font-size:1.1rem; line-height:1.5; color:var(--body-on-dark); max-width:60ch }
   .tl-text mark{
@@ -562,7 +686,7 @@
     .tl-ev{ grid-template-columns:84px 1fr; gap:22px; padding:18px 0 }
     .tl-ico{ width:84px; height:84px }
     .tl-list::before{ left:41px }
-    .tl-num{ font-size:2.4rem }
+    .tl-num{ font-size:2.22rem }
     .tl-text{ font-size:1.18rem }
     .tl-inner{ padding-left:28px; padding-right:28px }
   }
@@ -655,14 +779,14 @@
 <!-- ============ COVER ============ -->
 <section class="section dark" id="sec-cover">
   <div class="cover-inner">
-    <div class="cover-eyebrow" data-i18n="cover-eyebrow">MUSEO DE CIENCIA Y TECNOLOGÍA · SALTO GRANDE, URUGUAY</div>
-    <img class="cover-icon" data-img="icon" alt="Energimundo">
-    <div class="cover-word" data-i18n="brand">ENERGIMUNDO</div>
-    <div class="cover-sub" data-i18n="cover-sub">Visita Guiada</div>
-    <p class="cover-body" data-i18n="cover-body">Un museo de ciencia y tecnología dedicado a las energías renovables perteneciente a Salto Grande.</p>
+    <div class="cover-eyebrow cv-in cv-d1" data-i18n="cover-eyebrow">MUSEO DE CIENCIA Y TECNOLOGÍA · SALTO GRANDE, URUGUAY</div>
+    <img class="cover-icon cv-in cv-d2" data-img="icon" alt="Energimundo">
+    <div class="cover-word cv-in cv-d3" data-i18n="brand">ENERGIMUNDO</div>
+    <div class="cover-sub cv-in cv-d4" data-i18n="cover-sub">Visita Guiada</div>
+    <p class="cover-body cv-in cv-d5" data-i18n="cover-body">Un museo de ciencia y tecnología dedicado a las energías renovables perteneciente a Salto Grande.</p>
   </div>
   <div class="cover-spacer"></div>
-  <div class="cover-footer-top">
+  <div class="cover-footer-top cv-in cv-d6">
     <div class="brand-row"><img data-img="icon" alt=""><span data-i18n="brand">ENERGIMUNDO</span></div>
     <div class="sg-chip"><img data-img="sg" alt="Salto Grande"></div>
   </div>
