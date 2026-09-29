@@ -1,6 +1,6 @@
 // Energimundo — service worker. Bump CACHE_NAME on every publish so visitors
 // with an already-installed app pick up the new content instead of a stale copy.
-const CACHE_NAME = "energimundo-v41";
+const CACHE_NAME = "energimundo-v42";
 const ASSETS = [
   "./",
   "./index.html",
@@ -33,6 +33,14 @@ const ASSETS = [
   "./img-biomass-wall.jpg",
   "./img-cronomundo-hq.jpg",
   "./img-timeline-icons.jpg",
+  // real-photo 3D dam model textures (v39/v42) — Wikimedia Commons, CC BY-SA/CC BY
+  "./img-dam-reservoir.jpg",
+  "./img-dam-gates.jpg",
+  "./img-dam-powerhouse-l.jpg",
+  "./img-dam-powerhouse-r.jpg",
+  "./img-dam-genhall.jpg",
+  "./img-dam-tower.jpg",
+  "./img-dam-bridge.jpg",
 ];
 
 self.addEventListener("install", (event) => {
