@@ -1,6 +1,6 @@
 // Energimundo — service worker. Bump CACHE_NAME on every publish so visitors
 // with an already-installed app pick up the new content instead of a stale copy.
-const CACHE_NAME = "energimundo-v42";
+const CACHE_NAME = "energimundo-v43";
 const ASSETS = [
   "./",
   "./index.html",
@@ -18,6 +18,8 @@ const ASSETS = [
   "./font-leaguespartan-800.woff2",
   "./font-leaguespartan-900.woff2",
   "./font-jetbrainsmono-700.woff2",
+  "./font-jetbrainsmono-400.woff2",
+  "./font-jetbrainsmono-500.woff2",
   // photos and logos (separate files since v34; generate.py refuses to build if one is missing here)
   "./img-logo-icon-sq.png",
   "./img-logo-saltogrande-sm.png",
@@ -33,14 +35,11 @@ const ASSETS = [
   "./img-biomass-wall.jpg",
   "./img-cronomundo-hq.jpg",
   "./img-timeline-icons.jpg",
-  // real-photo 3D dam model textures (v39/v42) — Wikimedia Commons, CC BY-SA/CC BY
-  "./img-dam-reservoir.jpg",
-  "./img-dam-gates.jpg",
-  "./img-dam-powerhouse-l.jpg",
-  "./img-dam-powerhouse-r.jpg",
-  "./img-dam-genhall.jpg",
-  "./img-dam-tower.jpg",
-  "./img-dam-bridge.jpg",
+  // Salto Grande 3D digital-twin simulator (v43) — standalone Three.js document + its
+  // vendored dependencies, replacing the old real-photo dam-*.jpg CSS-3D maqueta
+  "./salto-grande-3d.html",
+  "./vendor-three.min.js",
+  "./vendor-orbitcontrols.js",
 ];
 
 self.addEventListener("install", (event) => {

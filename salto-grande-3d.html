@@ -1,0 +1,2774 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Salto Grande 3D — Gemelo Digital</title>
+<!-- Centro de Despacho Unificado CTM Salto Grande — Gemelo Digital 3D v2 -->
+<script src="./vendor-three.min.js"></script>
+<script src="./vendor-orbitcontrols.js"></script>
+
+<style>
+
+  @font-face{ font-family:"JetBrains Mono"; font-style:normal; font-weight:400; font-display:swap; src:url("font-jetbrainsmono-400.woff2") format("woff2") }
+  @font-face{ font-family:"JetBrains Mono"; font-style:normal; font-weight:500; font-display:swap; src:url("font-jetbrainsmono-500.woff2") format("woff2") }
+  @font-face{ font-family:"JetBrains Mono"; font-style:normal; font-weight:700; font-display:swap; src:url("font-jetbrainsmono-700.woff2") format("woff2") }
+  @font-face{ font-family:"League Spartan"; font-style:normal; font-weight:400; font-display:swap; src:url("font-leaguespartan-400.woff2") format("woff2") }
+  @font-face{ font-family:"League Spartan"; font-style:normal; font-weight:500; font-display:swap; src:url("font-leaguespartan-500.woff2") format("woff2") }
+  @font-face{ font-family:"League Spartan"; font-style:normal; font-weight:600; font-display:swap; src:url("font-leaguespartan-600.woff2") format("woff2") }
+  @font-face{ font-family:"League Spartan"; font-style:normal; font-weight:700; font-display:swap; src:url("font-leaguespartan-700.woff2") format("woff2") }
+  @font-face{ font-family:"League Spartan"; font-style:normal; font-weight:800; font-display:swap; src:url("font-leaguespartan-800.woff2") format("woff2") }
+  :root{
+    --bg:#020617;
+    --panel-bg:rgba(11,17,32,0.72);
+    --panel-bg-strong:rgba(11,17,32,0.88);
+    --panel-border:rgba(148,163,184,0.18);
+    --cyan:#22d3ee;
+    --cyan-dim:#0e7490;
+    --emerald:#34d399;
+    --amber:#fbbf24;
+    --amber-dim:#92400e;
+    --danger:#f87171;
+    --text-primary:#e6edf6;
+    --text-secondary:#8ea0b8;
+    --text-faint:#5b6b83;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{background:var(--bg);}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text-primary);
+    font-family:'League Spartan',system-ui,sans-serif;
+    overflow:hidden;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .mono{font-family:'JetBrains Mono',monospace;}
+
+  #sg-app{position:fixed;inset:0;width:100%;height:100%;overflow:hidden;}
+  #sg-canvas-wrap{position:fixed;inset:0;z-index:1;background:#020617;}
+  #sg-canvas-wrap canvas{display:block;width:100%;height:100%;touch-action:none;}
+
+  #sg-hud{position:fixed;inset:0;z-index:10;pointer-events:none;display:flex;flex-direction:column;}
+
+  .sg-panel{
+    background:var(--panel-bg);
+    border:1px solid var(--panel-border);
+    -webkit-backdrop-filter:blur(14px) saturate(140%);
+    backdrop-filter:blur(14px) saturate(140%);
+    border-radius:14px;
+    box-shadow:0 8px 30px -10px rgba(0,0,0,0.6);
+  }
+
+  /* ---------- HEADER ---------- */
+  #sg-header{
+    pointer-events:auto;
+    margin:12px 12px 0 12px;
+    padding:10px 16px;
+    display:flex;
+    align-items:center;
+    gap:14px;
+    flex-wrap:wrap;
+  }
+  #sg-header .sg-title-block{display:flex;flex-direction:column;gap:2px;margin-right:auto;min-width:0;}
+  #sg-header h1{
+    font-size:12.5px;
+    letter-spacing:0.06em;
+    font-weight:800;
+    margin:0;
+    color:var(--text-primary);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  #sg-header h1 span.sg-accent{color:var(--cyan);}
+  #sg-header .sg-subtitle{font-size:10px;color:var(--text-secondary);font-family:'JetBrains Mono',monospace;letter-spacing:0.03em;}
+
+  .sg-chip{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:5px 10px;border-radius:999px;
+    font-size:10.5px;font-weight:700;letter-spacing:0.04em;
+    font-family:'JetBrains Mono',monospace;
+    border:1px solid var(--panel-border);
+    white-space:nowrap;
+  }
+  .sg-chip-uy{color:#7dd3fc;background:rgba(56,189,248,0.08);border-color:rgba(56,189,248,0.35);}
+  .sg-chip-ar{color:#fcd34d;background:rgba(251,191,36,0.08);border-color:rgba(251,191,36,0.35);}
+  .sg-chip svg{width:11px;height:11px;flex:none;}
+
+  .sg-status{display:flex;align-items:center;gap:8px;padding:5px 12px;border-radius:999px;background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.35);}
+  .sg-status-text{font-size:10px;font-weight:700;letter-spacing:0.05em;color:var(--emerald);font-family:'JetBrains Mono',monospace;white-space:nowrap;}
+  .sg-pulse-dot{width:8px;height:8px;border-radius:50%;background:var(--emerald);position:relative;flex:none;}
+  .sg-pulse-dot::after{
+    content:'';position:absolute;inset:-4px;border-radius:50%;
+    border:2px solid var(--emerald);
+    animation:sgPulse 1.8s ease-out infinite;
+  }
+  @keyframes sgPulse{0%{transform:scale(0.5);opacity:0.9;}100%{transform:scale(1.9);opacity:0;}}
+  @media (prefers-reduced-motion:reduce){
+    .sg-pulse-dot::after{animation:none;opacity:0.4;}
+    .sg-drawer, .sg-panel, #sg-tour{transition:none !important;}
+  }
+
+  /* ---------- COMPASS ---------- */
+  #sg-compass{
+    pointer-events:none;
+    position:absolute;
+    top:70px; left:12px;
+    width:78px;height:78px;
+    display:flex;align-items:center;justify-content:center;
+  }
+  #sg-compass .ring{
+    position:relative;width:64px;height:64px;border-radius:50%;
+    transition:transform 0.15s linear;
+  }
+  #sg-compass .ring span{
+    position:absolute;font-family:'JetBrains Mono',monospace;font-weight:800;font-size:11px;color:var(--text-secondary);
+  }
+  #sg-compass .ring span.n{top:-2px;left:50%;transform:translateX(-50%);color:var(--danger);}
+  #sg-compass .ring span.s{bottom:-2px;left:50%;transform:translateX(-50%);}
+  #sg-compass .ring span.e{right:-4px;top:50%;transform:translateY(-50%);}
+  #sg-compass .ring span.o{left:-4px;top:50%;transform:translateY(-50%);}
+  #sg-compass .dial{position:absolute;inset:9px;border-radius:50%;border:1px solid var(--panel-border);background:rgba(148,163,184,0.05);}
+  #sg-compass .needle{position:absolute;left:50%;top:50%;width:2px;height:22px;background:linear-gradient(to bottom, var(--danger), transparent);transform-origin:50% 0%;margin-left:-1px;margin-top:0;}
+  #sg-compass .cap{position:absolute;font-size:7.5px;letter-spacing:0.08em;color:var(--text-faint);bottom:-14px;left:50%;transform:translateX(-50%);white-space:nowrap;font-family:'JetBrains Mono',monospace;}
+
+  /* ---------- TELEMETRY ---------- */
+  #sg-telemetry{
+    pointer-events:auto;
+    position:absolute;
+    top:70px;right:12px;
+    width:254px;
+    max-height:calc(100vh - 200px);
+    overflow-y:auto;
+    padding:12px;
+    display:flex;flex-direction:column;gap:8px;
+  }
+  #sg-telemetry::-webkit-scrollbar{width:5px;}
+  #sg-telemetry::-webkit-scrollbar-thumb{background:rgba(148,163,184,0.3);border-radius:4px;}
+
+  .sg-tele-card{
+    background:rgba(148,163,184,0.05);
+    border:1px solid var(--panel-border);
+    border-radius:10px;
+    padding:8px 10px;
+  }
+  .sg-tele-label{font-size:9.5px;letter-spacing:0.06em;color:var(--text-secondary);font-weight:700;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center;}
+  .sg-tele-value{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:var(--text-primary);margin-top:2px;}
+  .sg-tele-value small{font-size:11px;color:var(--text-secondary);font-weight:500;margin-left:3px;}
+  .sg-tele-value.cyan{color:var(--cyan);}
+  .sg-tele-value.emerald{color:var(--emerald);}
+  .sg-tele-value.amber{color:var(--amber);}
+
+  .sg-bar-track{height:6px;border-radius:4px;background:rgba(148,163,184,0.15);overflow:hidden;margin-top:6px;}
+  .sg-bar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--cyan),var(--emerald));transition:width 0.35s ease;}
+
+  .sg-split-row{display:flex;gap:8px;margin-top:6px;}
+  .sg-split-item{flex:1;text-align:center;padding:5px 4px;border-radius:8px;background:rgba(148,163,184,0.05);}
+  .sg-split-item .l{font-size:8.5px;color:var(--text-secondary);letter-spacing:0.05em;font-weight:700;}
+  .sg-split-item .v{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;}
+
+  .sg-mini-slider-row{display:flex;align-items:center;gap:8px;margin-top:6px;}
+  .sg-mini-slider-row input[type=range]{flex:1;}
+  .sg-mini-slider-row .val{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-primary);min-width:48px;text-align:right;}
+  .sg-tele-range{display:flex;justify-content:space-between;font-size:8px;color:var(--text-faint);margin-top:2px;font-family:'JetBrains Mono',monospace;}
+
+  #sg-telemetry-toggle{display:none;}
+
+  /* ---------- FACTSHEET ---------- */
+  #sg-factsheet{
+    pointer-events:auto;
+    position:absolute;
+    left:12px; bottom:96px;
+    width:236px;
+    padding:10px 12px;
+    font-family:'JetBrains Mono',monospace;
+  }
+  #sg-factsheet .ft-head{display:flex;justify-content:space-between;align-items:center;cursor:pointer;}
+  #sg-factsheet .ft-title{font-size:10px;letter-spacing:0.06em;color:var(--text-secondary);font-weight:700;}
+  #sg-factsheet .ft-body{margin-top:6px;display:flex;flex-direction:column;gap:3px;max-height:38vh;overflow-y:auto;}
+  #sg-factsheet.collapsed .ft-body{display:none;}
+  .ft-row{display:flex;justify-content:space-between;font-size:9.5px;gap:8px;}
+  .ft-row .k{color:var(--text-secondary);}
+  .ft-row .v{color:var(--text-primary);font-weight:600;text-align:right;}
+  #sg-factsheet .ft-chev{transition:transform 0.2s;color:var(--text-secondary);font-size:11px;}
+  #sg-factsheet.collapsed .ft-chev{transform:rotate(-90deg);}
+
+  /* ---------- CONTROL BAR ---------- */
+  #sg-controlbar{
+    pointer-events:auto;
+    position:absolute;
+    left:12px; right:12px; bottom:12px;
+    padding:10px 14px;
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:14px;
+  }
+  .sg-ctl-group{display:flex;flex-direction:column;gap:5px;}
+  .sg-ctl-group.grow{flex:1;min-width:190px;}
+  .sg-ctl-label{font-size:9.5px;letter-spacing:0.06em;color:var(--text-secondary);font-weight:700;text-transform:uppercase;display:flex;justify-content:space-between;}
+  .sg-ctl-label .num{color:var(--cyan);font-family:'JetBrains Mono',monospace;}
+
+  .sg-view-btns{display:flex;gap:5px;flex-wrap:wrap;max-width:520px;}
+  .sg-btn{
+    font-family:'League Spartan',sans-serif;
+    font-size:10.5px;font-weight:600;
+    padding:7px 9px;
+    border-radius:8px;
+    background:rgba(148,163,184,0.08);
+    border:1px solid var(--panel-border);
+    color:var(--text-secondary);
+    cursor:pointer;
+    transition:all 0.15s ease;
+    white-space:nowrap;
+  }
+  .sg-btn:hover{background:rgba(148,163,184,0.16);color:var(--text-primary);}
+  .sg-btn.active{background:rgba(34,211,238,0.16);border-color:rgba(34,211,238,0.55);color:var(--cyan);}
+  .sg-btn.xray-active{background:rgba(248,113,113,0.16);border-color:rgba(248,113,113,0.55);color:var(--danger);}
+  .sg-btn.tour-btn{background:rgba(251,191,36,0.12);border-color:rgba(251,191,36,0.4);color:var(--amber);}
+
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;
+    width:100%;height:5px;border-radius:4px;
+    background:rgba(148,163,184,0.2);
+    outline:none;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;
+    width:15px;height:15px;border-radius:50%;
+    background:var(--cyan);
+    border:2px solid #061018;
+    cursor:pointer;
+    box-shadow:0 0 6px rgba(34,211,238,0.7);
+    margin-top:-1px;
+  }
+  input[type=range]::-moz-range-thumb{
+    width:15px;height:15px;border-radius:50%;
+    background:var(--cyan);border:2px solid #061018;cursor:pointer;
+  }
+
+  .sg-switch{position:relative;display:inline-flex;align-items:center;gap:8px;cursor:pointer;user-select:none;}
+  .sg-switch input{position:absolute;opacity:0;width:0;height:0;}
+  .sg-switch .track{width:36px;height:20px;border-radius:999px;background:rgba(148,163,184,0.2);border:1px solid var(--panel-border);position:relative;transition:background 0.2s;flex:none;}
+  .sg-switch .thumb{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--text-secondary);transition:all 0.2s;}
+  .sg-switch input:checked + .track{background:rgba(52,211,153,0.35);border-color:rgba(52,211,153,0.6);}
+  .sg-switch input:checked + .track .thumb{left:18px;background:var(--emerald);box-shadow:0 0 6px rgba(52,211,153,0.8);}
+  .sg-switch .lbl{font-size:11px;font-weight:600;color:var(--text-secondary);white-space:nowrap;}
+  .sg-switch input:checked ~ .lbl{color:var(--text-primary);}
+
+  /* ---------- TOUR DRAWER ---------- */
+  #sg-tour{
+    pointer-events:auto;
+    position:absolute;
+    top:70px; right:12px; bottom:12px;
+    width:340px;
+    padding:0;
+    display:flex;flex-direction:column;
+    transform:translateX(120%);
+    opacity:0;
+    transition:transform 0.35s cubic-bezier(.2,.8,.2,1), opacity 0.3s ease;
+    z-index:20;
+  }
+  #sg-tour.open{transform:translateX(0);opacity:1;}
+  .sg-tour-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--panel-border);}
+  .sg-tour-head h2{font-size:12px;letter-spacing:0.05em;margin:0;color:var(--amber);font-weight:800;}
+  .sg-tour-close{background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:18px;line-height:1;padding:2px 6px;border-radius:6px;}
+  .sg-tour-close:hover{color:var(--text-primary);background:rgba(148,163,184,0.1);}
+  .sg-tour-body{flex:1;overflow-y:auto;padding:16px;}
+  .sg-tour-step-badge{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--cyan);background:rgba(34,211,238,0.1);border:1px solid rgba(34,211,238,0.3);padding:3px 8px;border-radius:999px;margin-bottom:10px;}
+  .sg-tour-view-badge{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--amber);background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);padding:3px 8px;border-radius:999px;margin-bottom:10px;margin-left:6px;}
+  .sg-tour-title{font-size:16px;font-weight:800;margin:0 0 10px 0;color:var(--text-primary);line-height:1.3;}
+  .sg-tour-text{font-size:13px;line-height:1.6;color:var(--text-secondary);}
+  .sg-tour-text b{color:var(--text-primary);}
+  .sg-tour-text .sg-fact{display:inline-block;margin-top:10px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--emerald);background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.25);padding:6px 8px;border-radius:8px;}
+  .sg-tour-nav{display:flex;gap:8px;padding:14px 16px;border-top:1px solid var(--panel-border);}
+  .sg-tour-nav .sg-btn{flex:1;text-align:center;}
+  .sg-tour-dots{display:flex;justify-content:center;gap:5px;padding-bottom:10px;}
+  .sg-tour-dot{width:6px;height:6px;border-radius:50%;background:rgba(148,163,184,0.3);}
+  .sg-tour-dot.active{background:var(--amber);width:16px;border-radius:3px;transition:all 0.2s;}
+
+  #sg-hint{
+    pointer-events:none;
+    position:absolute;
+    bottom:12px;left:50%;
+    transform:translateX(-50%);
+    font-size:10px;color:var(--text-faint);
+    font-family:'JetBrains Mono',monospace;
+    letter-spacing:0.03em;
+    background:rgba(2,6,23,0.4);
+    padding:4px 10px;border-radius:999px;
+    white-space:nowrap;
+  }
+
+  #sg-fatal{
+    position:fixed;inset:0;z-index:999;
+    display:flex;align-items:center;justify-content:center;
+    background:#020617;color:#e2e8f0;padding:24px;
+  }
+  #sg-fatal.hidden{display:none;}
+  #sg-fatal .box{max-width:480px;text-align:center;border:1px solid rgba(248,113,113,0.4);background:rgba(248,113,113,0.06);border-radius:14px;padding:24px;}
+  #sg-fatal h2{color:#f87171;font-size:16px;margin:0 0 8px;}
+  #sg-fatal p{font-size:13px;color:#94a3b8;line-height:1.5;}
+
+  .hidden{display:none !important;}
+
+  /* ---------- RESPONSIVE ---------- */
+  @media (max-width: 760px){
+    #sg-telemetry{width:212px;padding:10px;}
+    #sg-factsheet{display:none;}
+    #sg-tour{width:min(92vw,360px);}
+    #sg-compass{display:none;}
+  }
+
+  @media (max-width: 640px){
+    #sg-header{padding:8px 10px;gap:8px;}
+    #sg-header .sg-subtitle{display:none;}
+    #sg-header h1{font-size:11px;}
+    .sg-chip{padding:4px 7px;font-size:9px;}
+    .sg-status-text{display:none;}
+
+    #sg-telemetry{
+      top:auto; bottom:200px; right:8px; left:8px;
+      width:auto;
+      max-height:38vh;
+      flex-direction:row;flex-wrap:wrap;
+      display:none;
+    }
+    #sg-telemetry.show{display:flex;}
+    #sg-telemetry .sg-tele-card{flex:1 1 44%;}
+    #sg-telemetry-toggle{
+      display:block;
+      pointer-events:auto;
+      position:absolute;
+      bottom:200px; right:8px;
+      z-index:12;
+    }
+    #sg-telemetry-toggle.raised{bottom:calc(38vh + 206px);}
+
+    #sg-controlbar{
+      left:8px;right:8px;bottom:8px;
+      padding:8px 10px;gap:8px;
+      flex-direction:column;
+      align-items:stretch;
+      max-height:46vh;
+      overflow-y:auto;
+    }
+    .sg-ctl-group.grow{min-width:0;}
+    .sg-view-btns{justify-content:space-between;max-width:none;}
+    .sg-view-btns .sg-btn{flex:1 1 30%;text-align:center;padding:7px 4px;font-size:9.5px;}
+
+    #sg-tour{
+      top:8px;right:8px;left:8px;bottom:8px;width:auto;
+      transform:translateY(120%);
+    }
+    #sg-tour.open{transform:translateY(0);}
+
+    #sg-hint{display:none;}
+  }
+</style>
+</head>
+<body>
+
+<div id="sg-app">
+  <div id="sg-canvas-wrap"></div>
+
+  <div id="sg-fatal" class="hidden">
+    <div class="box">
+      <h2 data-i18n="fatal-title">No se pudo iniciar el motor 3D</h2>
+      <p id="sg-fatal-msg">Three.js u OrbitControls no se cargaron correctamente. Verificá tu conexión y recargá la página.</p>
+    </div>
+  </div>
+
+  <div id="sg-hud">
+    <header id="sg-header" class="sg-panel">
+      <div class="sg-title-block">
+        <h1><span data-i18n="header-title">CENTRO DE DESPACHO UNIFICADO</span> <span class="sg-accent">| CTM SALTO GRANDE</span></h1>
+        <div class="sg-subtitle" data-i18n="header-subtitle">COMISIÓN TÉCNICA MIXTA DE SALTO GRANDE — RÍO URUGUAY — GEMELO DIGITAL 3D</div>
+      </div>
+      <span class="sg-chip sg-chip-ar">
+        <svg viewBox="0 0 24 24" fill="none"><rect x="3.5" y="3.5" width="17" height="17" rx="3" stroke="currentColor" stroke-width="2"/><path d="M3.5 12h17" stroke="currentColor" stroke-width="1.4"/></svg>
+        <span data-i18n="chip-ar">ARGENTINA · CAMMESA · O</span>
+      </span>
+      <span class="sg-chip sg-chip-uy">
+        <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 3v18" stroke="currentColor" stroke-width="1.4"/></svg>
+        <span data-i18n="chip-uy">URUGUAY · UTE · E</span>
+      </span>
+      <span class="sg-status">
+        <span class="sg-pulse-dot"></span>
+        <span class="sg-status-text" data-i18n="status-active">EN SERVICIO / DESPACHO ACTIVO</span>
+      </span>
+    </header>
+
+    <div id="sg-compass" class="sg-panel" style="background:transparent;border:none;box-shadow:none;backdrop-filter:none;">
+      <div class="ring" id="compass-ring">
+        <span class="n" data-i18n="compass-n">N</span><span class="s" data-i18n="compass-s">S</span><span class="e" data-i18n="compass-e">E</span><span class="o" data-i18n="compass-o">O</span>
+        <div class="dial"></div>
+        <div class="needle"></div>
+      </div>
+    </div>
+
+    <button id="sg-telemetry-toggle" class="sg-btn mono" data-i18n="tel-toggle-closed">TELEMETRÍA ▾</button>
+
+    <aside id="sg-telemetry" class="sg-panel">
+      <div class="sg-tele-card">
+        <div class="sg-tele-label" data-i18n="tele-embalse-label">Cota de embalse (aguas arriba)</div>
+        <div class="sg-tele-value cyan mono" id="tel-nivel">35.00<small>m s.n.m.</small></div>
+        <div class="sg-mini-slider-row">
+          <input type="range" id="embalse-slider" min="30.00" max="37.00" step="0.10" value="35.00">
+        </div>
+        <div class="sg-tele-range"><span data-i18n="tele-embalse-min">MÍN 30,00</span><span data-i18n="tele-embalse-normal">NORMAL 35,00</span><span data-i18n="tele-embalse-max">EXTR. 37,00</span></div>
+      </div>
+      <div class="sg-tele-card">
+        <div class="sg-tele-label" data-i18n="tele-restitucion-label">Cota de restitución (aguas abajo)</div>
+        <div class="sg-tele-value mono" id="tel-restitucion">9.30<small>m s.n.m.</small></div>
+      </div>
+      <div class="sg-tele-card">
+        <div class="sg-tele-label" data-i18n="tele-salto-label">Salto neto calculado (H)</div>
+        <div class="sg-tele-value cyan mono" id="tel-salto">25.30<small>m</small></div>
+      </div>
+      <div class="sg-tele-card">
+        <div class="sg-tele-label" data-i18n="tele-caudal-label">Caudal turbinado</div>
+        <div class="sg-tele-value mono" id="tel-caudal">8540<small>m³/s</small></div>
+      </div>
+      <div class="sg-tele-card">
+        <div class="sg-tele-label"><span data-i18n="tele-potencia-label">Potencia activa total</span> <span id="tel-potencia-pct" class="mono">100%</span></div>
+        <div class="sg-tele-value emerald mono" id="tel-potencia">1890.0<small>MW</small></div>
+        <div class="sg-bar-track"><div class="sg-bar-fill" id="tel-potencia-bar" style="width:100%"></div></div>
+        <div class="sg-split-row">
+          <div class="sg-split-item"><div class="l" data-i18n="tele-ute-label">UTE (UY) 50%</div><div class="v mono" id="tel-ute">945.0</div></div>
+          <div class="sg-split-item"><div class="l" data-i18n="tele-cammesa-label">CAMMESA (AR) 50%</div><div class="v mono" id="tel-cammesa">945.0</div></div>
+        </div>
+      </div>
+      <div class="sg-tele-card">
+        <div class="sg-tele-label" data-i18n="tele-freq-label">Frecuencia del sistema</div>
+        <div class="sg-tele-value amber mono" id="tel-freq">50.00<small>Hz</small></div>
+      </div>
+      <div class="sg-tele-card">
+        <div class="sg-tele-label"><span data-i18n="tele-turbinas-label">Turbinas en servicio</span> <span class="num mono" id="tel-turbinas-num">14/14</span></div>
+        <div class="sg-split-row" style="margin-top:4px;">
+          <div class="sg-split-item"><div class="l" data-i18n="tele-margin-ar">MARGEN AR (O)</div><div class="v mono" id="tel-turbinas-ar">7</div></div>
+          <div class="sg-split-item"><div class="l" data-i18n="tele-margin-uy">MARGEN UY (E)</div><div class="v mono" id="tel-turbinas-uy">7</div></div>
+        </div>
+        <div class="sg-mini-slider-row">
+          <input type="range" id="turbine-slider" min="0" max="14" step="1" value="14">
+        </div>
+      </div>
+    </aside>
+
+    <div id="sg-factsheet" class="sg-panel collapsed">
+      <div class="ft-head" id="ft-head">
+        <span class="ft-title" data-i18n="ft-title">FICHA TÉCNICA REAL</span>
+        <span class="ft-chev">▾</span>
+      </div>
+      <div class="ft-body">
+        <div class="ft-row"><span class="k" data-i18n="ft-1-k">Potencia instalada</span><span class="v" data-i18n="ft-1-v">1.890 MW</span></div>
+        <div class="ft-row"><span class="k" data-i18n="ft-2-k">Turbinas Kaplan</span><span class="v" data-i18n="ft-2-v">14 (7+7) · 75 rpm</span></div>
+        <div class="ft-row"><span class="k" data-i18n="ft-3-k">Rodete Kaplan</span><span class="v" data-i18n="ft-3-v">Ø 8,5 m · 6 álabes</span></div>
+        <div class="ft-row"><span class="k" data-i18n="ft-4-k">Salto nominal</span><span class="v" data-i18n="ft-4-v">25,3 m (18–26 m)</span></div>
+        <div class="ft-row"><span class="k" data-i18n="ft-5-k">Caudal nominal/unidad</span><span class="v" data-i18n="ft-5-v">610 m³/s</span></div>
+        <div class="ft-row"><span class="k" data-i18n="ft-6-k">Caudal turbinado máx.</span><span class="v" data-i18n="ft-6-v">≈8.540 m³/s</span></div>
+        <div class="ft-row"><span class="k" data-i18n="ft-7-k">Vertedero central</span><span class="v" data-i18n="ft-7-v">19 vanos · 361 m</span></div>
+        <div class="ft-row"><span class="k" data-i18n="ft-8-k">Cota de coronamiento</span><span class="v" data-i18n="ft-8-v">39,00 m s.n.m.</span></div>
+        <div class="ft-row"><span class="k" data-i18n="ft-9-k">Longitud total complejo</span><span class="v" data-i18n="ft-9-v">2.520 m</span></div>
+        <div class="ft-row"><span class="k" data-i18n="ft-10-k">Subestaciones</span><span class="v" data-i18n="ft-10-v">500 kV · SADI / SIN</span></div>
+        <div class="ft-row"><span class="k" data-i18n="ft-11-k">Embalse</span><span class="v" data-i18n="ft-11-v">783 km² / 5.000 hm³</span></div>
+        <div class="ft-row"><span class="k" data-i18n="ft-12-k">Gen. media anual</span><span class="v" data-i18n="ft-12-v">8.546 GWh</span></div>
+        <div class="ft-row"><span class="k" data-i18n="ft-13-k">Reparto binacional</span><span class="v" data-i18n="ft-13-v">50% UTE / 50% CAMMESA</span></div>
+      </div>
+    </div>
+
+    <div id="sg-controlbar" class="sg-panel">
+      <div class="sg-ctl-group">
+        <div class="sg-ctl-label" data-i18n="ctl-view-label">Vista de cámara guiada</div>
+        <div class="sg-view-btns">
+          <button class="sg-btn active" data-view="panoramica" data-i18n="view-btn-panoramica">Panorámica Binacional</button>
+          <button class="sg-btn" data-view="vertedero" data-i18n="view-btn-vertedero">Vertedero Central</button>
+          <button class="sg-btn" data-view="kaplan" data-i18n="view-btn-kaplan">Corte Técnico Kaplan</button>
+          <button class="sg-btn" data-view="puente" data-i18n="view-btn-puente">Puente Internacional</button>
+          <button class="sg-btn" data-view="subestaciones" data-i18n="view-btn-subestaciones">Subestaciones 500kV</button>
+        </div>
+      </div>
+
+      <div class="sg-ctl-group grow">
+        <div class="sg-ctl-label"><span data-i18n="ctl-flow-label">Caudal de entrada del sistema</span> <span class="num" id="flow-label">8540 m³/s</span></div>
+        <input type="range" id="flow-slider" min="1000" max="20000" step="50" value="8540">
+      </div>
+
+      <div class="sg-ctl-group">
+        <div class="sg-ctl-label">&nbsp;</div>
+        <label class="sg-switch">
+          <input type="checkbox" id="spillway-toggle">
+          <span class="track"><span class="thumb"></span></span>
+          <span class="lbl" data-i18n="ctl-spillway-label">Compuertas de alivio (19 vanos)</span>
+        </label>
+      </div>
+
+      <div class="sg-ctl-group">
+        <div class="sg-ctl-label">&nbsp;</div>
+        <button class="sg-btn" id="xray-toggle" data-i18n="ctl-xray-btn">◈ Modo Rayos-X / Corte Técnico</button>
+      </div>
+
+      <div class="sg-ctl-group">
+        <div class="sg-ctl-label">&nbsp;</div>
+        <button class="sg-btn tour-btn" id="tour-open-btn" data-i18n="ctl-tour-open-btn">▶ Tour Educativo Guiado</button>
+      </div>
+    </div>
+
+    <div id="sg-tour" class="sg-panel">
+      <div class="sg-tour-head">
+        <h2 data-i18n="tour-panel-title">TOUR EDUCATIVO GUIADO</h2>
+        <button class="sg-tour-close" id="tour-close-btn">&times;</button>
+      </div>
+      <div class="sg-tour-body">
+        <span class="sg-tour-step-badge" id="tour-step-badge">PASO 1 / 6</span>
+        <span class="sg-tour-view-badge" id="tour-view-badge">VISTA: PANORÁMICA</span>
+        <h3 class="sg-tour-title" id="tour-title">El embalse y la cota</h3>
+        <div class="sg-tour-text" id="tour-text"></div>
+      </div>
+      <div class="sg-tour-dots" id="tour-dots"></div>
+      <div class="sg-tour-nav">
+        <button class="sg-btn" id="tour-prev-btn" data-i18n="tour-prev-btn">◀ Anterior</button>
+        <button class="sg-btn" id="tour-next-btn" data-i18n="tour-btn-next">Siguiente ▶</button>
+      </div>
+    </div>
+
+    <div id="sg-hint" data-i18n="hint">Arrastrá para orbitar la cámara · Rueda / pellizco para zoom · Eje N/S/E/O real</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  // ============================================================
+  //  ARRANQUE / MANEJO DE ERRORES
+  // ============================================================
+  function showFatal(msg){
+    var el = document.getElementById('sg-fatal');
+    var m = document.getElementById('sg-fatal-msg');
+    if(m && msg) m.textContent = msg;
+    if(el) el.classList.remove('hidden');
+  }
+
+  if(typeof window.THREE === 'undefined'){
+    showFatal('La librería Three.js (r128) no se cargó desde el CDN. Verificá tu conexión a internet y recargá la página.');
+    return;
+  }
+  if(typeof window.THREE.OrbitControls === 'undefined'){
+    showFatal('El módulo OrbitControls de Three.js no se cargó correctamente. Verificá tu conexión a internet y recargá la página.');
+    return;
+  }
+
+  try{
+    runApp();
+  }catch(err){
+    console.error('Salto Grande 3D v2 — error fatal:', err);
+    showFatal('Ocurrió un error inesperado iniciando la simulación 3D: ' + (err && err.message ? err.message : String(err)));
+  }
+
+  // ============================================================
+  //  APLICACIÓN PRINCIPAL
+  // ============================================================
+  function runApp(){
+
+    // ---------- Utilidades numéricas ----------
+    function clamp(v,a,b){ return Math.min(b, Math.max(a, v)); }
+    function lerp(a,b,t){ return a + (b - a) * t; }
+    function smoothstep(e0,e1,x){ var t = clamp((x - e0) / (e1 - e0), 0, 1); return t * t * (3 - 2 * t); }
+    function easeInOutCubic(t){ return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2, 3)/2; }
+    function windowFn(t, a0, a1, b0, b1){
+      if(t <= a0 || t >= b1) return 0;
+      if(t >= a1 && t <= b0) return 1;
+      if(t < a1) return smoothstep(a0, a1, t);
+      return 1 - smoothstep(b0, b1, t);
+    }
+
+    // ---------- Datos reales de Salto Grande (fuente: CTM Salto Grande / saltogrande.org) ----------
+    // Nota de calibración de potencia: el cliente propuso P(MW) = 14*(eta*9.81*Qu*H)/1000.
+    // Verificación dimensional: la fórmula física estándar es P(W) = eta * rho * g * Q * H,
+    // con rho = 1000 kg/m3. Convertida a MW: P(MW) = eta*1000*9.81*Q*H / 1e6 = eta*9.81*Q*H/1000,
+    // que es ALGEBRAICAMENTE IDÉNTICA a la fórmula del cliente (la densidad del agua, al valer
+    // exactamente 1000 kg/m3, queda "escondida" dentro del factor de conversión W->MW). Por eso
+    // en el código se implementa la forma explícita P = eta * RHO * G * Q * H (en Watts, ver
+    // updatePhysics) para que quede auditable con las constantes físicas a la vista, aunque el
+    // resultado numérico coincide con la fórmula simplificada del cliente.
+    var REAL = {
+      POWER_MW: 1890,
+      TURBINES_TOTAL: 14,
+      TURBINES_PER_SIDE: 7,
+      RUNNER_DIAMETER_M: 8.5,
+      RUNNER_BLADES: 6,
+      SYNC_RPM: 75,
+      HEAD_NOMINAL: 25.3,
+      HEAD_MIN: 18, HEAD_MAX: 26,
+      Q_PER_TURBINE_NOMINAL: 610,
+      Q_TOTAL_NOMINAL: 8540,
+      SPILLWAY_GATES: 19,
+      SPILLWAY_LENGTH_M: 361,
+      DAM_LENGTH_M: 852,
+      COMPLEX_LENGTH_M: 2520,
+      POWERHOUSE_HEIGHT_M: 69,
+      CREST_ELEV_M: 39.00,
+      EMBALSE_NORMAL_M: 35.00,
+      EMBALSE_MIN_M: 30.00,
+      EMBALSE_MAX_M: 37.00,
+      RESTITUCION_MIN_M: 6.00,
+      RESTITUCION_MAX_M: 14.00,
+      RAIL_GAUGE_M: 1.435,
+      RESERVOIR_AREA_KM2: 783,
+      RESERVOIR_VOLUME_HM3: 5000,
+      ANNUAL_GEN_GWH: 8546,
+      FREQ_NOMINAL: 50.00,
+      ETA: 0.93,
+      RHO: 1000,
+      G: 9.81
+    };
+
+    // ---------- Verificación numérica simple (solo consola, no altera la simulación) ----------
+    // 14 unidades * eta * rho * g * Qu * H, con Qu=610 m3/s y H=25.3 m (valores nominales de placa):
+    (function verifyPowerFormula(){
+      var pUnitW = REAL.ETA * REAL.RHO * REAL.G * REAL.Q_PER_TURBINE_NOMINAL * REAL.HEAD_NOMINAL;
+      var pTotalMW = (pUnitW * REAL.TURBINES_TOTAL) / 1e6;
+      console.log('[Salto Grande 3D] Verificación P=eta*rho*g*Q*H con 14x610 m3/s, H=25.3m, eta=0.93 => ' +
+                   pTotalMW.toFixed(1) + ' MW (placa real: 1890 MW, diferencia ' +
+                   (((pTotalMW-1890)/1890)*100).toFixed(1) + '%)');
+    })();
+
+    // ---------- Ejes geográficos ----------
+    // X: Oeste (Argentina/Concordia, margen derecha) <-> Este (Uruguay/Salto, margen izquierda)
+    // Z: Norte (aguas arriba / embalse Lago Salto Grande) <-> Sur (aguas abajo / río Uruguay - Salto Chico)
+    var SIDE = { ARG: -1, URU: 1 }; // ARG = Oeste (X negativo), URU = Este (X positivo)
+
+    // ---------- Escala de la escena ----------
+    var S = 0.06;      // metros -> unidades horizontales de escena
+    var VZ = 1.55;      // exageración vertical (para que la geometría se lea bien)
+    function sx(m){ return m * S; }
+    function sy(m){ return m * S * VZ; }
+
+    // ---------- Estado global de simulación ----------
+    var state = {
+      flowTotal: REAL.Q_TOTAL_NOMINAL,
+      turbinesActive: REAL.TURBINES_TOTAL,
+      spillwayOpen: false,
+      xray: false,
+      cameraView: 'panoramica',
+      time: 0,
+      cotaEmbalseSlider: REAL.EMBALSE_NORMAL_M,
+      cotaEmbalse: REAL.EMBALSE_NORMAL_M,
+      cotaAguasAbajo: REAL.RESTITUCION_MIN_M,
+      headNet: REAL.HEAD_NOMINAL,
+      qTurbinado: REAL.Q_TOTAL_NOMINAL,
+      qPerTurbine: REAL.Q_PER_TURBINE_NOMINAL,
+      qExcedente: 0,
+      powerMW: REAL.POWER_MW,
+      uteMW: REAL.POWER_MW / 2,
+      cammesaMW: REAL.POWER_MW / 2,
+      freq: REAL.FREQ_NOMINAL,
+      flowRatio: 1,
+      turbineAngularSpeed: 0
+    };
+    var freqNoiseTarget = 0, freqNoiseCurrent = 0, freqNoiseTimer = 0, freqPhase = Math.random() * Math.PI * 2;
+
+    // ---------- Referencias globales del mundo 3D ----------
+    var W = {
+      damLength: sx(REAL.DAM_LENGTH_M),
+      spillwayLength: sx(REAL.SPILLWAY_LENGTH_M),
+      complexLength: sx(REAL.COMPLEX_LENGTH_M),
+      wallThickness: sx(46),
+      reservoirY: 6.0,
+      riverY: 0,
+      crownY: 0,
+      groundBaseY: 0,
+      powerhouseHeight: sy(REAL.POWERHOUSE_HEIGHT_M),
+      cutX: 0,
+      indicatorsURU: [],
+      indicatorsARG: [],
+      wicketBlades: [],
+      kaplanBlades: [],
+      rotorGroup: null,
+      solidBay: null,
+      cutawayGroup: null,
+      mainParticleCurve: null,
+      spillwayGateSlots: [],
+      gateProgress: 0,
+      craneTrolleys: [],
+      substationCatenaries: []
+    };
+    W.riverY = W.reservoirY - sy(REAL.HEAD_NOMINAL);
+    W.crownY = W.reservoirY + sy(REAL.CREST_ELEV_M - REAL.EMBALSE_NORMAL_M);
+    W.groundBaseY = W.riverY - 1.4;
+
+    // ============================================================
+    //  THREE.JS: ESCENA, CÁMARA, RENDERER, LUCES
+    // ============================================================
+    var scene, camera, renderer, controls, clock;
+    var canvasWrap = document.getElementById('sg-canvas-wrap');
+
+    function initScene(){
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x030712);
+      scene.fog = new THREE.Fog(0x030712, 90, 340);
+
+      camera = new THREE.PerspectiveCamera(48, window.innerWidth / window.innerHeight, 0.1, 700);
+      camera.position.set(30, 58, 150);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      if(THREE.sRGBEncoding) renderer.outputEncoding = THREE.sRGBEncoding;
+      if(THREE.ACESFilmicToneMapping) renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.05;
+      canvasWrap.appendChild(renderer.domElement);
+
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.08;
+      controls.minDistance = 6;
+      controls.maxDistance = 320;
+      controls.minPolarAngle = 0.05;
+      controls.maxPolarAngle = 1.52;
+      controls.target.set(0, W.riverY + 3, 0);
+      camera.lookAt(controls.target);
+
+      clock = new THREE.Clock();
+
+      setupLights();
+      buildTerrain();
+      buildReservoirAndRiver();
+      buildDam();
+      buildSpillway();
+      var phArg = buildPowerhouse(SIDE.ARG);
+      var phUru = buildPowerhouse(SIDE.URU);
+      buildLateralDikes(phArg.outerX, phUru.outerX);
+      buildBridgeDeck();
+      buildTurbineCutaway(phUru.firstUnitX);
+      buildSubstation(SIDE.ARG, phArg.outerX);
+      buildSubstation(SIDE.URU, phUru.outerX);
+      buildCTMAreasAndMuseum(phArg.outerX, phUru.outerX);
+      scatterVegetation();
+      scatterRocks();
+      initParticles();
+
+      window.addEventListener('resize', onWindowResize, false);
+    }
+
+    function setupLights(){
+      var hemi = new THREE.HemisphereLight(0x9fc4e8, 0x2a2f22, 0.55);
+      scene.add(hemi);
+
+      var sun = new THREE.DirectionalLight(0xfff2d9, 1.35);
+      sun.position.set(90, 120, 55);
+      sun.castShadow = true;
+      sun.shadow.mapSize.set(2048, 2048);
+      sun.shadow.camera.near = 1;
+      sun.shadow.camera.far = 420;
+      sun.shadow.camera.left = -140;
+      sun.shadow.camera.right = 140;
+      sun.shadow.camera.top = 140;
+      sun.shadow.camera.bottom = -140;
+      sun.shadow.bias = -0.0015;
+      scene.add(sun);
+      scene.add(sun.target);
+
+      var fill = new THREE.DirectionalLight(0x5aa8d8, 0.28);
+      fill.position.set(-70, 50, -80);
+      scene.add(fill);
+
+      var underGlow = new THREE.PointLight(0x1fb6c9, 0.4, 60, 2);
+      underGlow.position.set(0, W.riverY + 1, 10);
+      scene.add(underGlow);
+    }
+
+    // ============================================================
+    //  TEXTURAS PROCEDURALES (canvas 2D — sin imágenes externas)
+    // ============================================================
+    function makeCanvasTexture(size, drawFn){
+      var canvas = document.createElement('canvas');
+      canvas.width = size; canvas.height = size;
+      var ctx = canvas.getContext('2d');
+      drawFn(ctx, size);
+      var tex = new THREE.CanvasTexture(canvas);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      tex.needsUpdate = true;
+      return tex;
+    }
+
+    function drawWaterTexture(ctx, size, deep){
+      var grad = ctx.createLinearGradient(0, 0, size, size);
+      if(deep){ grad.addColorStop(0, '#062f3e'); grad.addColorStop(1, '#0b5063'); }
+      else { grad.addColorStop(0, '#0a3b4d'); grad.addColorStop(1, '#12586f'); }
+      ctx.fillStyle = grad; ctx.fillRect(0, 0, size, size);
+      ctx.strokeStyle = 'rgba(190,235,245,0.16)';
+      for(var i=0;i<46;i++){
+        ctx.beginPath();
+        var y = Math.random()*size;
+        ctx.moveTo(0, y);
+        for(var x=0;x<=size;x+=14){ ctx.lineTo(x, y + Math.sin(x*0.045 + i)*7); }
+        ctx.lineWidth = 0.6 + Math.random()*1.4;
+        ctx.stroke();
+      }
+    }
+
+    function drawFoamTexture(ctx, size){
+      ctx.clearRect(0,0,size,size);
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      for(var i=0;i<260;i++){
+        var x = Math.random()*size, y = Math.random()*size, r = Math.random()*2.2+0.4;
+        ctx.globalAlpha = Math.random()*0.55+0.08;
+        ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function drawConcreteTexture(ctx, size){
+      ctx.fillStyle = '#84878d'; ctx.fillRect(0,0,size,size);
+      for(var i=0;i<2600;i++){
+        var x = Math.random()*size, y = Math.random()*size;
+        var shade = Math.random()*38-19;
+        ctx.fillStyle = 'rgba(' + (128+shade) + ',' + (130+shade) + ',' + (136+shade) + ',0.45)';
+        ctx.fillRect(x, y, 1.3, 1.3);
+      }
+      ctx.strokeStyle = 'rgba(35,37,42,0.3)';
+      for(var j=0;j<8;j++){
+        ctx.beginPath();
+        var yy = (j+1)*size/9;
+        ctx.moveTo(0,yy); ctx.lineTo(size,yy); ctx.stroke();
+      }
+      for(var k=0;k<8;k++){
+        ctx.beginPath();
+        var xx = (k+1)*size/9;
+        ctx.moveTo(xx,0); ctx.lineTo(xx,size); ctx.stroke();
+      }
+    }
+
+    function drawBasaltTexture(ctx, size){
+      var grad = ctx.createLinearGradient(0,0,size,size);
+      grad.addColorStop(0,'#26221e'); grad.addColorStop(1,'#1a1714');
+      ctx.fillStyle = grad; ctx.fillRect(0,0,size,size);
+      for(var i=0;i<1400;i++){
+        var x=Math.random()*size,y=Math.random()*size;
+        var shade = Math.random()*30-15;
+        var brown = Math.random() > 0.5;
+        var base = brown ? [58,44,34] : [40,38,36];
+        ctx.fillStyle = 'rgba(' + Math.max(0,base[0]+shade) + ',' + Math.max(0,base[1]+shade) + ',' + Math.max(0,base[2]+shade) + ',0.5)';
+        var r = Math.random()*2.4+0.5;
+        ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+      }
+    }
+
+    function drawGroundTexture(ctx, size){
+      var grad = ctx.createLinearGradient(0,0,0,size);
+      grad.addColorStop(0,'#1c2417'); grad.addColorStop(1,'#141a10');
+      ctx.fillStyle = grad; ctx.fillRect(0,0,size,size);
+      ctx.fillStyle = 'rgba(70,90,55,0.18)';
+      for(var i=0;i<900;i++){
+        var x=Math.random()*size,y=Math.random()*size,r=Math.random()*2.5+0.5;
+        ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+      }
+    }
+
+    var TEX_RESERVOIR = makeCanvasTexture(256, function(c,s){ drawWaterTexture(c,s,true); });
+    var TEX_RIVER = makeCanvasTexture(256, function(c,s){ drawWaterTexture(c,s,false); });
+    var TEX_FOAM = makeCanvasTexture(128, drawFoamTexture);
+    var TEX_CONCRETE = makeCanvasTexture(256, drawConcreteTexture);
+    var TEX_BASALT = makeCanvasTexture(256, drawBasaltTexture);
+    var TEX_GROUND = makeCanvasTexture(256, drawGroundTexture);
+    TEX_RESERVOIR.repeat.set(9,7);
+    TEX_RIVER.repeat.set(9,5);
+    TEX_FOAM.repeat.set(7,3);
+    TEX_CONCRETE.repeat.set(16,3);
+    TEX_BASALT.repeat.set(6,6);
+    TEX_GROUND.repeat.set(20,20);
+
+    // ---------- Materiales reutilizables ----------
+    var MAT_CONCRETE = new THREE.MeshStandardMaterial({ map: TEX_CONCRETE, color: 0xffffff, roughness: 0.92, metalness: 0.04 });
+    var MAT_CONCRETE_DARK = new THREE.MeshStandardMaterial({ map: TEX_CONCRETE, color: 0xaab0b8, roughness: 0.95, metalness: 0.03 });
+    var MAT_METAL = new THREE.MeshStandardMaterial({ color: 0x9aa3ad, roughness: 0.32, metalness: 0.85 });
+    var MAT_METAL_DARK = new THREE.MeshStandardMaterial({ color: 0x565c66, roughness: 0.4, metalness: 0.8 });
+    var MAT_METAL_COPPER = new THREE.MeshStandardMaterial({ color: 0xb5651d, roughness: 0.45, metalness: 0.75 });
+    var MAT_GATE_TAINTOR = new THREE.MeshStandardMaterial({ color: 0xb5451f, roughness: 0.55, metalness: 0.55, side: THREE.DoubleSide });
+    var MAT_GATE_MAINT = new THREE.MeshStandardMaterial({ color: 0xf5b942, roughness: 0.5, metalness: 0.6 });
+    var MAT_RESERVOIR = new THREE.MeshStandardMaterial({ map: TEX_RESERVOIR, roughness: 0.28, metalness: 0.1, transparent:true, opacity:0.94 });
+    var MAT_RIVER = new THREE.MeshStandardMaterial({ map: TEX_RIVER, roughness: 0.3, metalness: 0.1, transparent:true, opacity:0.94 });
+    var MAT_FOAM = new THREE.MeshBasicMaterial({ map: TEX_FOAM, transparent: true, opacity: 0.55, depthWrite: false });
+    var MAT_GROUND = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0 });
+    var MAT_BASALT = new THREE.MeshStandardMaterial({ map: TEX_BASALT, color: 0xffffff, roughness: 1, metalness: 0.02 });
+    var MAT_ROCK_A = new THREE.MeshStandardMaterial({ color: 0x1f1c19, roughness: 0.96, metalness: 0.03 });
+    var MAT_ROCK_B = new THREE.MeshStandardMaterial({ color: 0x362a20, roughness: 0.96, metalness: 0.03 });
+    var MAT_ROCK_C = new THREE.MeshStandardMaterial({ color: 0x413c34, roughness: 0.96, metalness: 0.03 });
+    var MAT_ROAD = new THREE.MeshStandardMaterial({ color: 0x33363c, roughness: 0.9, metalness: 0.05 });
+    var MAT_LANE = new THREE.MeshStandardMaterial({ color: 0xf5d76e, roughness: 0.6 });
+    var MAT_RAIL = new THREE.MeshStandardMaterial({ color: 0x8b8f96, roughness: 0.4, metalness: 0.7 });
+    var MAT_SLEEPER = new THREE.MeshStandardMaterial({ color: 0x2c2016, roughness: 0.95, metalness: 0.02 });
+    var MAT_GLASS = new THREE.MeshStandardMaterial({ color: 0x1c2c33, roughness: 0.2, metalness: 0.3 });
+    var MAT_LAMP_OFF = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.6, metalness: 0.2 });
+    var MAT_LAMP_ON = new THREE.MeshStandardMaterial({ color: 0xfff2c0, emissive: 0xffdd66, emissiveIntensity: 1.4, roughness: 0.5 });
+    var MAT_INDICATOR_ON = new THREE.MeshStandardMaterial({ color: 0x34d399, emissive: 0x22c55e, emissiveIntensity: 1.6, roughness: 0.4 });
+    var MAT_INDICATOR_OFF = new THREE.MeshStandardMaterial({ color: 0x475569, emissive: 0x000000, roughness: 0.7 });
+    var MAT_FOLIAGE = new THREE.MeshStandardMaterial({ color: 0x2f5233, roughness: 0.95, metalness: 0 });
+    var MAT_FOLIAGE_LOW = new THREE.MeshStandardMaterial({ color: 0x3a5a2e, roughness: 0.95, metalness: 0 });
+    var MAT_TRUNK = new THREE.MeshStandardMaterial({ color: 0x4b3a2a, roughness: 1, metalness: 0 });
+    var MAT_BUILDING = new THREE.MeshStandardMaterial({ color: 0xd8d3c4, roughness: 0.85, metalness: 0.05 });
+    var MAT_BUILDING_ROOF = new THREE.MeshStandardMaterial({ color: 0x7a3b2e, roughness: 0.8, metalness: 0.05 });
+    var MAT_MUSEUM = new THREE.MeshStandardMaterial({ color: 0xe7ecef, roughness: 0.6, metalness: 0.15, emissive: 0x0b3a45, emissiveIntensity: 0.25 });
+    var MAT_MUSEUM_ACCENT = new THREE.MeshStandardMaterial({ color: 0x22d3ee, emissive: 0x0891b2, emissiveIntensity: 0.9, roughness: 0.4, metalness: 0.3 });
+    var MAT_TRANSFORMER = new THREE.MeshStandardMaterial({ color: 0x4b5563, roughness: 0.5, metalness: 0.6 });
+    var MAT_INSULATOR = new THREE.MeshStandardMaterial({ color: 0x8b6b3d, roughness: 0.35, metalness: 0.1 });
+
+    // ---------- Objeto auxiliar reutilizable para InstancedMesh ----------
+    var _dummy = new THREE.Object3D();
+
+    // ============================================================
+    //  ETIQUETAS DE TEXTO (sprites con canvas — sin librerías extra)
+    // ============================================================
+    function roundRect(ctx,x,y,w,h,r){
+      ctx.beginPath();
+      ctx.moveTo(x+r,y);
+      ctx.arcTo(x+w,y,x+w,y+h,r);
+      ctx.arcTo(x+w,y+h,x,y+h,r);
+      ctx.arcTo(x,y+h,x,y,r);
+      ctx.arcTo(x,y,x+w,y,r);
+      ctx.closePath();
+    }
+
+    function makeLabelSprite(text, opts){
+      opts = opts || {};
+      var fontSize = opts.fontSize || 42;
+      var padding = opts.padding || 22;
+      var textColor = opts.color || '#e6edf6';
+      var bgColor = opts.bg || 'rgba(6,12,22,0.82)';
+      var borderColor = opts.border || 'rgba(148,163,184,0.55)';
+      var canvas = document.createElement('canvas');
+      var ctx = canvas.getContext('2d');
+      ctx.font = '700 ' + fontSize + 'px League Spartan, sans-serif';
+      var textWidth = ctx.measureText(text).width;
+      canvas.width = Math.ceil(textWidth + padding*2);
+      canvas.height = Math.ceil(fontSize + padding*1.5);
+      ctx.font = '700 ' + fontSize + 'px League Spartan, sans-serif';
+      var r = 16;
+      ctx.fillStyle = bgColor;
+      roundRect(ctx, 2, 2, canvas.width-4, canvas.height-4, r);
+      ctx.fill();
+      ctx.strokeStyle = borderColor;
+      ctx.lineWidth = 3;
+      roundRect(ctx, 2, 2, canvas.width-4, canvas.height-4, r);
+      ctx.stroke();
+      ctx.fillStyle = textColor;
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'center';
+      ctx.fillText(text, canvas.width/2, canvas.height/2 + 1);
+      var tex = new THREE.CanvasTexture(canvas);
+      tex.needsUpdate = true;
+      var mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false });
+      var sprite = new THREE.Sprite(mat);
+      var scale = opts.scale || 0.017;
+      sprite.scale.set(canvas.width*scale, canvas.height*scale, 1);
+      return sprite;
+    }
+
+    // ============================================================
+    //  TERRENO (relieve ondulado del Litoral Norte + geología basáltica)
+    // ============================================================
+    function terrainNoise(x, z){
+      return W.groundBaseY +
+        Math.sin(x*0.05 + 1.7)*0.55 + Math.cos(z*0.045 - 0.6)*0.5 +
+        Math.sin((x*0.11 + z*0.08))*0.24 + Math.cos((x-z)*0.07)*0.2;
+    }
+    function getTerrainHeight(x, z){ return terrainNoise(x, z); }
+
+    function isWaterOrCore(x, z){
+      if(Math.abs(z) < 15) return true; // franja del eje presa/puente/subestaciones
+      if(z < -14 && z > -(14 + 150) && Math.abs(x) < 150) return true; // embalse
+      if(z > 14 && z < (14 + 150) && Math.abs(x) < 150) return true; // río aguas abajo
+      return false;
+    }
+
+    function buildTerrain(){
+      var halfSpan = W.complexLength/2 + 40;
+      var geo = new THREE.PlaneGeometry(halfSpan*2 + 60, 340, 100, 90);
+      geo.rotateX(-Math.PI/2);
+      var pos = geo.attributes.position;
+      var colors = new Float32Array(pos.count*3);
+      var cA = new THREE.Color(0x1c2417), cB = new THREE.Color(0x141a10);
+      for(var i=0;i<pos.count;i++){
+        var x = pos.getX(i), z = pos.getZ(i);
+        var h = isWaterOrCore(x,z) ? W.groundBaseY - 3 : terrainNoise(x,z);
+        pos.setY(i, h);
+        var mixT = Math.random();
+        var c = cA.clone().lerp(cB, mixT*0.6);
+        colors[i*3] = c.r; colors[i*3+1] = c.g; colors[i*3+2] = c.b;
+      }
+      geo.computeVertexNormals();
+      geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      var mesh = new THREE.Mesh(geo, MAT_GROUND);
+      mesh.position.y = 0;
+      mesh.receiveShadow = true;
+      scene.add(mesh);
+    }
+
+    // ============================================================
+    //  EMBALSE Y RÍO (con animación de superficie)
+    // ============================================================
+    var reservoirMesh, riverMesh, reservoirBasePos, riverBasePos, foamMesh;
+
+    function buildReservoirAndRiver(){
+      var resGeo = new THREE.PlaneGeometry(300, 150, 52, 30);
+      reservoirMesh = new THREE.Mesh(resGeo, MAT_RESERVOIR);
+      reservoirMesh.rotation.x = -Math.PI/2;
+      reservoirMesh.position.set(0, W.reservoirY, -95);
+      reservoirMesh.receiveShadow = true;
+      scene.add(reservoirMesh);
+      reservoirBasePos = resGeo.attributes.position.array.slice();
+
+      var riverGeo = new THREE.PlaneGeometry(300, 160, 52, 32);
+      riverMesh = new THREE.Mesh(riverGeo, MAT_RIVER);
+      riverMesh.rotation.x = -Math.PI/2;
+      riverMesh.position.set(0, W.riverY, 100);
+      riverMesh.receiveShadow = true;
+      scene.add(riverMesh);
+      riverBasePos = riverGeo.attributes.position.array.slice();
+
+      var foamGeo = new THREE.PlaneGeometry(W.spillwayLength * 1.06, 16, 1, 1);
+      foamMesh = new THREE.Mesh(foamGeo, MAT_FOAM);
+      foamMesh.rotation.x = -Math.PI/2;
+      foamMesh.position.set(0, W.riverY + 0.05, W.wallThickness*0.55 + 6);
+      scene.add(foamMesh);
+    }
+
+    function updateWaterSurfaces(dt){
+      var t = state.time;
+      var posR = reservoirMesh.geometry.attributes.position;
+      var arrR = posR.array, baseR = reservoirBasePos;
+      for(var i=0;i<arrR.length;i+=3){
+        var x = baseR[i], y = baseR[i+1];
+        arrR[i+2] = Math.sin((x+y)*0.09 + t*0.9) * 0.10 + Math.sin(x*0.2 - t*0.6) * 0.05;
+      }
+      posR.needsUpdate = true;
+      reservoirMesh.geometry.computeVertexNormals();
+
+      var posV = riverMesh.geometry.attributes.position;
+      var arrV = posV.array, baseV = riverBasePos;
+      var turbulence = 0.08 + state.flowRatio * 0.22;
+      for(var j=0;j<arrV.length;j+=3){
+        var xx = baseV[j], yy = baseV[j+1];
+        arrV[j+2] = Math.sin((xx*0.25) + t*2.2) * turbulence + Math.sin(yy*0.3 - t*1.4) * turbulence*0.5;
+      }
+      posV.needsUpdate = true;
+      riverMesh.geometry.computeVertexNormals();
+
+      var speed = 0.05 + state.flowRatio * 0.35;
+      TEX_RESERVOIR.offset.x = (t * 0.015) % 1;
+      TEX_RESERVOIR.offset.y = (t * 0.008) % 1;
+      TEX_RIVER.offset.x = (t * speed) % 1;
+      TEX_RIVER.offset.y = (t * speed * 0.4) % 1;
+      TEX_FOAM.offset.x = (t * speed * 1.3) % 1;
+      foamMesh.material.opacity = (state.spillwayOpen ? 0.5 : 0.3) + state.flowRatio * 0.35;
+    }
+
+    // ============================================================
+    //  MURO PRINCIPAL / MACIZO DE HORMIGÓN
+    // ============================================================
+    function buildDam(){
+      var group = new THREE.Group();
+      var baseY = W.riverY;
+      var thickness = W.wallThickness;
+
+      var footing = new THREE.Mesh(
+        new THREE.BoxGeometry(W.damLength + 4, 1.4, thickness + 8),
+        MAT_CONCRETE_DARK
+      );
+      footing.position.set(0, baseY - 1.0, 0);
+      footing.castShadow = true; footing.receiveShadow = true;
+      group.add(footing);
+
+      scene.add(group);
+      return group;
+    }
+
+    // ============================================================
+    //  VERTEDERO CENTRAL — 19 VANOS REALES, COMPUERTAS RADIALES TAINTOR
+    // ============================================================
+    function buildSpillway(){
+      var group = new THREE.Group();
+      var N_BAYS = REAL.SPILLWAY_GATES; // 19 — exacto, no simplificado
+      var half = W.spillwayLength / 2;
+      var bayWidth = W.spillwayLength / N_BAYS;
+      var pillarWidth = bayWidth * 0.16;
+      var sillY = W.riverY + 0.6;
+      var crestTopY = W.crownY - 0.3;
+      var pillarHeight = crestTopY - sillY + 0.6;
+      var pillarDepth = W.wallThickness * 0.62;
+      var gateW = bayWidth - pillarWidth*1.05;
+      var gateH = pillarHeight * 0.78;
+
+      // ---- Losa de solera / cuenco amortiguador ----
+      var sill = new THREE.Mesh(new THREE.BoxGeometry(W.spillwayLength + pillarWidth, 0.5, pillarDepth + 2.4), MAT_CONCRETE_DARK);
+      sill.position.set(0, sillY - 0.25, 0);
+      sill.castShadow = true; sill.receiveShadow = true;
+      group.add(sill);
+
+      // ---- Perfil Creager (cresta curva de vertido) ----
+      var crestRadius = 1.6;
+      var crestGeo = new THREE.CylinderGeometry(crestRadius, crestRadius, W.spillwayLength + pillarWidth, 20, 1, true, 0, Math.PI/2);
+      var crestMesh = new THREE.Mesh(crestGeo, MAT_CONCRETE);
+      crestMesh.rotation.z = Math.PI/2;
+      crestMesh.rotation.x = Math.PI/2;
+      crestMesh.position.set(0, sillY + crestRadius, -pillarDepth/2 + 0.2);
+      crestMesh.castShadow = true; crestMesh.receiveShadow = true;
+      group.add(crestMesh);
+
+      // ---- Cuenco disipador: dientes / baffle blocks (instanciados) ----
+      var baffleGeo = new THREE.BoxGeometry(bayWidth*0.32, 0.55, 0.5);
+      var baffleMesh = new THREE.InstancedMesh(baffleGeo, MAT_CONCRETE_DARK, N_BAYS*2);
+      var bi = 0;
+      for(var row=0; row<2; row++){
+        for(var bb=0; bb<N_BAYS; bb++){
+          var bx = -half + bayWidth*(bb+0.5) + (row%2===0?0:bayWidth*0.5);
+          _dummy.position.set(bx, sillY + 0.05, pillarDepth*0.42 + row*0.9);
+          _dummy.rotation.set(0,0,0);
+          _dummy.scale.set(1,1,1);
+          _dummy.updateMatrix();
+          baffleMesh.setMatrixAt(bi++, _dummy.matrix);
+        }
+      }
+      baffleMesh.count = bi;
+      baffleMesh.instanceMatrix.needsUpdate = true;
+      baffleMesh.castShadow = false; baffleMesh.receiveShadow = false;
+      group.add(baffleMesh);
+
+      // ---- Pilares (instanciados, N_BAYS+1) ----
+      var pillarGeo = new THREE.BoxGeometry(pillarWidth, pillarHeight, pillarDepth);
+      var pillarMesh = new THREE.InstancedMesh(pillarGeo, MAT_CONCRETE, N_BAYS + 1);
+      for(var i=0;i<=N_BAYS;i++){
+        var px = -half + i*bayWidth;
+        _dummy.position.set(px, sillY + pillarHeight/2, 0);
+        _dummy.rotation.set(0,0,0);
+        _dummy.scale.set(1,1,1);
+        _dummy.updateMatrix();
+        pillarMesh.setMatrixAt(i, _dummy.matrix);
+      }
+      pillarMesh.castShadow = true; pillarMesh.receiveShadow = true;
+      group.add(pillarMesh);
+
+      // ---- Compuertas radiales tipo Taintor (instanciadas, N_BAYS = 19) ----
+      var gateArc = Math.PI * 0.5;
+      var gateRadius = 1.55;
+      var gateGeo = new THREE.CylinderGeometry(gateRadius, gateRadius, gateW, 14, 1, true, -gateArc/2, gateArc);
+      gateGeo.rotateZ(Math.PI/2);
+      var gateMesh = new THREE.InstancedMesh(gateGeo, MAT_GATE_TAINTOR, N_BAYS);
+      gateMesh.castShadow = true;
+      W.spillwayGateSlots = [];
+      for(var g=0; g<N_BAYS; g++){
+        var gx = -half + bayWidth*(g+0.5);
+        W.spillwayGateSlots.push({
+          x: gx,
+          closedY: sillY + gateH/2,
+          openY: sillY + pillarHeight + 0.9,
+          closedTilt: 0.12,
+          openTilt: 0.95,
+          crestY: sillY + crestRadius*1.6
+        });
+      }
+      group.add(gateMesh);
+
+      // ---- Castilletes / servomotores hidráulicos esquemáticos (instanciados) ----
+      var servoGeo = new THREE.BoxGeometry(bayWidth*0.34, 0.6, 0.5);
+      var servoMesh = new THREE.InstancedMesh(servoGeo, MAT_METAL_DARK, N_BAYS);
+      for(var sv=0; sv<N_BAYS; sv++){
+        var svx = -half + bayWidth*(sv+0.5);
+        _dummy.position.set(svx, sillY + pillarHeight + 1.9, 0);
+        _dummy.rotation.set(0,0,0);
+        _dummy.scale.set(1,1,1);
+        _dummy.updateMatrix();
+        servoMesh.setMatrixAt(sv, _dummy.matrix);
+      }
+      servoMesh.castShadow = false; servoMesh.receiveShadow = false;
+      group.add(servoMesh);
+
+      // ---- Pasarela superior de maniobra ----
+      var catwalk = new THREE.Mesh(new THREE.BoxGeometry(W.spillwayLength + pillarWidth*2, 0.25, 1.4), MAT_METAL_DARK);
+      catwalk.position.set(0, sillY + pillarHeight + 1.6, 0);
+      group.add(catwalk);
+
+      scene.add(group);
+      W.spillwayGatesMesh = gateMesh;
+      return group;
+    }
+
+    // ============================================================
+    //  CASAS DE MÁQUINAS GEMELAS (margen Argentina / margen Uruguay)
+    // ============================================================
+    function buildPowerhouse(sideSign){
+      // sideSign: SIDE.ARG (-1, Oeste) o SIDE.URU (+1, Este)
+      var group = new THREE.Group();
+      var half = W.spillwayLength / 2;
+      var span = (W.damLength - W.spillwayLength) / 2;
+      var innerX = sideSign * half;
+      var outerX = sideSign * (half + span);
+      var centerX = sideSign * (half + span/2);
+      var baseY = W.riverY;
+      var height = W.powerhouseHeight;
+      var depth = W.wallThickness * 0.9;
+
+      var body = new THREE.Mesh(new THREE.BoxGeometry(span - 0.6, height, depth), MAT_CONCRETE);
+      body.position.set(centerX, baseY + height/2, 0);
+      body.castShadow = true; body.receiveShadow = true;
+      group.add(body);
+
+      for(var f=0; f<3; f++){
+        var band = new THREE.Mesh(new THREE.BoxGeometry(span - 1.4, 0.5, depth + 0.05), MAT_GLASS);
+        band.position.set(centerX, baseY + height*0.4 + f*height*0.16, 0);
+        group.add(band);
+      }
+
+      var roofY = baseY + height + 0.15;
+      var roof = new THREE.Mesh(new THREE.BoxGeometry(span - 0.4, 0.3, depth), MAT_CONCRETE_DARK);
+      roof.position.set(centerX, roofY, 0);
+      roof.castShadow = true; roof.receiveShadow = true;
+      group.add(roof);
+
+      // 7 unidades generadoras por margen (tapas de pozo de turbina + indicador de estado)
+      var perSide = REAL.TURBINES_PER_SIDE;
+      var slotW = (span - 1.6) / perSide;
+      var startX = centerX - span/2 + 0.8 + slotW/2;
+      var indicators = [];
+      for(var u=0; u<perSide; u++){
+        var ux = startX + u*slotW;
+        var domeGroup = new THREE.Group();
+        var dome = new THREE.Mesh(new THREE.SphereGeometry(slotW*0.34, 16, 10, 0, Math.PI*2, 0, Math.PI/2), MAT_METAL_DARK);
+        dome.position.set(ux, roofY + 0.02, 0);
+        domeGroup.add(dome);
+
+        var ring = new THREE.Mesh(new THREE.TorusGeometry(slotW*0.36, 0.05, 8, 20), MAT_METAL);
+        ring.rotation.x = Math.PI/2;
+        ring.position.set(ux, roofY + 0.03, 0);
+        domeGroup.add(ring);
+
+        var indicator = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 10), MAT_INDICATOR_ON.clone());
+        indicator.position.set(ux, roofY + slotW*0.34 + 0.3, 0);
+        domeGroup.add(indicator);
+        indicators.push(indicator);
+
+        group.add(domeGroup);
+      }
+      if(sideSign === SIDE.URU) W.indicatorsURU = indicators; else W.indicatorsARG = indicators;
+
+      // Canal de descarga hacia el río
+      var outlet = new THREE.Mesh(new THREE.BoxGeometry(span - 1.2, 0.6, 2.4), MAT_CONCRETE_DARK);
+      outlet.position.set(centerX, baseY + 0.3, depth/2 + 1.2);
+      outlet.receiveShadow = true;
+      group.add(outlet);
+
+      // ---- Grúa pórtico exterior sobre rieles (mantenimiento pesado) ----
+      var craneRailY = roofY + 0.1;
+      var craneLegH = 2.6;
+      var craneBeamY = craneRailY + craneLegH;
+      var craneSpan = depth * 0.86;
+      var legGeo = new THREE.BoxGeometry(0.18, craneLegH, 0.18);
+      var legPositions = [[-craneSpan/2, -span/2+1.2],[craneSpan/2, -span/2+1.2],[-craneSpan/2, span/2-1.2],[craneSpan/2, span/2-1.2]];
+      for(var lp=0; lp<legPositions.length; lp++){
+        var leg = new THREE.Mesh(legGeo, MAT_METAL_DARK);
+        leg.position.set(centerX + legPositions[lp][1], craneRailY + craneLegH/2, legPositions[lp][0]);
+        group.add(leg);
+      }
+      var railA = new THREE.Mesh(new THREE.BoxGeometry(span - 0.6, 0.08, 0.1), MAT_RAIL);
+      railA.position.set(centerX, craneRailY, -craneSpan/2);
+      group.add(railA);
+      var railB = railA.clone();
+      railB.position.z = craneSpan/2;
+      group.add(railB);
+      var beam = new THREE.Mesh(new THREE.BoxGeometry(span - 0.9, 0.32, craneSpan + 0.3), MAT_METAL_DARK);
+      beam.position.set(centerX, craneBeamY, 0);
+      group.add(beam);
+      var trolley = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.4, 0.7), MAT_METAL);
+      trolley.position.set(centerX, craneBeamY - 0.3, 0);
+      group.add(trolley);
+      var hook = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.6, 6), MAT_METAL);
+      hook.position.set(centerX, craneBeamY - 0.65, 0);
+      group.add(hook);
+      W.craneTrolleys.push({ mesh: trolley, hook: hook, centerX: centerX, range: (span-1.4)/2, phase: Math.random()*Math.PI*2 });
+
+      scene.add(group);
+      return { group: group, centerX: centerX, innerX: innerX, outerX: outerX, span: span, firstUnitX: startX };
+    }
+
+    // ============================================================
+    //  DIQUES DE CIERRE LATERAL (escollera de basalto + núcleo impermeable)
+    // ============================================================
+    function buildLateralDikes(argOuterX, uruOuterX){
+      var crestHeight = W.crownY - (W.riverY - 0.6);
+      var baseHalfWidth = W.wallThickness * 2.3;
+      var crestHalfWidth = W.wallThickness * 0.7;
+      var dikeLength = (W.complexLength - W.damLength) / 2 - 0.4;
+      if(dikeLength < 4) dikeLength = 4;
+
+      function buildOneDike(sideSign, innerEdgeX){
+        var shape = new THREE.Shape();
+        shape.moveTo(-baseHalfWidth, 0);
+        shape.lineTo(baseHalfWidth, 0);
+        shape.lineTo(crestHalfWidth, crestHeight);
+        shape.lineTo(-crestHalfWidth, crestHeight);
+        shape.lineTo(-baseHalfWidth, 0);
+        var extrudeSettings = { depth: dikeLength, bevelEnabled: false };
+        var geo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+        var mesh = new THREE.Mesh(geo, MAT_BASALT);
+        mesh.rotation.y = Math.PI/2;
+        mesh.castShadow = false; mesh.receiveShadow = false;
+        var startX = innerEdgeX + sideSign * 0.3;
+        mesh.position.set(sideSign > 0 ? startX : startX - dikeLength, W.riverY - 0.6, 0);
+        scene.add(mesh);
+
+        // enrocado de basalto disperso sobre el talud (instanciado)
+        var rockGeo = new THREE.DodecahedronGeometry(0.28, 0);
+        var mats = [MAT_ROCK_A, MAT_ROCK_B, MAT_ROCK_C];
+        for(var m=0;m<mats.length;m++){
+          var count = 30;
+          var im = new THREE.InstancedMesh(rockGeo, mats[m], count);
+          for(var r=0;r<count;r++){
+            var t = Math.random();
+            var localX = sideSign>0 ? (innerEdgeX + sideSign*(0.6 + t*(dikeLength-1))) : (innerEdgeX + sideSign*(0.6 + t*(dikeLength-1)));
+            var slopeSide = Math.random()>0.5 ? 1 : -1;
+            var heightT = Math.random();
+            var localZ = slopeSide * lerp(baseHalfWidth-0.3, crestHalfWidth+0.2, heightT);
+            var localY = W.riverY - 0.6 + heightT*crestHeight*0.92 + Math.random()*0.15;
+            _dummy.position.set(localX, localY, localZ);
+            _dummy.rotation.set(Math.random()*Math.PI, Math.random()*Math.PI, Math.random()*Math.PI);
+            var sc = 0.6 + Math.random()*0.9;
+            _dummy.scale.set(sc,sc,sc);
+            _dummy.updateMatrix();
+            im.setMatrixAt(r, _dummy.matrix);
+          }
+          im.castShadow = false; im.receiveShadow = false;
+          im.instanceMatrix.needsUpdate = true;
+          scene.add(im);
+        }
+      }
+
+      buildOneDike(SIDE.ARG, argOuterX);
+      buildOneDike(SIDE.URU, uruOuterX);
+    }
+
+    // ============================================================
+    //  CORONAMIENTO Y PUENTE INTERNACIONAL FERROVIAL (cota 39,00 m)
+    // ============================================================
+    function buildBridgeDeck(){
+      var group = new THREE.Group();
+      var deckY = W.crownY;
+      var deckWidth = 3.2;
+      var deckLength = W.complexLength;
+
+      var deck = new THREE.Mesh(new THREE.BoxGeometry(deckLength, 0.5, deckWidth), MAT_ROAD);
+      deck.position.set(0, deckY, -1.4);
+      deck.castShadow = true; deck.receiveShadow = true;
+      group.add(deck);
+
+      // Calzada vehicular de 2 carriles: señalización de línea central y bordes
+      var centerLane = new THREE.Mesh(new THREE.BoxGeometry(deckLength * 0.985, 0.02, 0.08), MAT_LANE);
+      centerLane.position.set(0, deckY + 0.26, -1.4);
+      group.add(centerLane);
+      var edgeMat = new THREE.MeshStandardMaterial({ color: 0xe8e8e8, roughness: 0.6 });
+      var edgeOffsets = [-1.35, -0.95];
+      for(var e=0;e<edgeOffsets.length;e++){
+        var edge = new THREE.Mesh(new THREE.BoxGeometry(deckLength * 0.985, 0.02, 0.05), edgeMat);
+        edge.position.set(0, deckY + 0.26, edgeOffsets[e]);
+        group.add(edge);
+      }
+
+      // Vía férrea de trocha estándar (1,435 mm — gauge exagerado visualmente para legibilidad a esta escala)
+      var railDeck = new THREE.Mesh(new THREE.BoxGeometry(deckLength, 0.4, 1.6), MAT_CONCRETE_DARK);
+      railDeck.position.set(0, deckY - 0.05, 1.1);
+      railDeck.castShadow = true; railDeck.receiveShadow = true;
+      group.add(railDeck);
+
+      var visualGauge = 0.46; // ancho visual entre rieles (real: 1,435 m, exagerado para legibilidad)
+      var railOffsets = [-visualGauge/2, visualGauge/2];
+      for(var r=0;r<railOffsets.length;r++){
+        var rail = new THREE.Mesh(new THREE.BoxGeometry(deckLength * 0.997, 0.12, 0.09), MAT_RAIL);
+        rail.position.set(0, deckY + 0.2, 1.1 + railOffsets[r]);
+        group.add(rail);
+      }
+
+      // Durmientes (instanciados)
+      var sleeperSpacing = 1.15;
+      var sleeperCount = Math.floor(deckLength / sleeperSpacing);
+      var sleeperGeo = new THREE.BoxGeometry(0.85, 0.1, 0.16);
+      var sleeperMesh = new THREE.InstancedMesh(sleeperGeo, MAT_SLEEPER, sleeperCount);
+      for(var s=0;s<sleeperCount;s++){
+        var sxpos = -deckLength/2 + s*sleeperSpacing + sleeperSpacing/2;
+        _dummy.position.set(sxpos, deckY + 0.11, 1.1);
+        _dummy.rotation.set(0,0,0);
+        _dummy.scale.set(1,1,1);
+        _dummy.updateMatrix();
+        sleeperMesh.setMatrixAt(s, _dummy.matrix);
+      }
+      sleeperMesh.castShadow = false; sleeperMesh.receiveShadow = false;
+      group.add(sleeperMesh);
+
+      // Barandas de protección laterales
+      var railingOffsets = [-2.4, 2.0];
+      for(var b=0;b<railingOffsets.length;b++){
+        var railing = new THREE.Mesh(new THREE.BoxGeometry(deckLength, 0.9, 0.08), MAT_METAL_DARK);
+        railing.position.set(0, deckY + 0.7, railingOffsets[b]);
+        group.add(railing);
+        var railingBase = new THREE.Mesh(new THREE.BoxGeometry(deckLength, 0.08, 0.08), MAT_METAL_DARK);
+        railingBase.position.set(0, deckY + 0.28, railingOffsets[b]);
+        group.add(railingBase);
+      }
+
+      // Columnas de alumbrado público (instanciadas: postes + lámparas)
+      var postSpacing = 8.0;
+      var postCount = Math.floor(deckLength / postSpacing) + 1;
+      var poleGeo = new THREE.CylinderGeometry(0.05, 0.07, 1.7, 6);
+      var lampGeo = new THREE.SphereGeometry(0.14, 8, 8);
+      var poleMesh = new THREE.InstancedMesh(poleGeo, MAT_METAL_DARK, postCount);
+      var lampMesh = new THREE.InstancedMesh(lampGeo, MAT_LAMP_ON, postCount);
+      for(var p=0;p<postCount;p++){
+        var px = -deckLength/2 + p*postSpacing;
+        _dummy.position.set(px, deckY + 0.7 + 0.85, -2.35);
+        _dummy.rotation.set(0,0,0); _dummy.scale.set(1,1,1);
+        _dummy.updateMatrix();
+        poleMesh.setMatrixAt(p, _dummy.matrix);
+        _dummy.position.set(px, deckY + 0.7 + 1.7, -2.35);
+        _dummy.updateMatrix();
+        lampMesh.setMatrixAt(p, _dummy.matrix);
+      }
+      poleMesh.castShadow = false; poleMesh.receiveShadow = false;
+      lampMesh.castShadow = false;
+      group.add(poleMesh); group.add(lampMesh);
+
+      scene.add(group);
+      return group;
+    }
+
+    // ============================================================
+    //  SUBESTACIONES TRANSFORMADORAS DE 500 kV
+    // ============================================================
+    function buildLatticeTower(x, z, baseY, h){
+      var g = new THREE.Group();
+      var legOffsets = [[-0.55,-0.55],[0.55,-0.55],[-0.55,0.55],[0.55,0.55]];
+      var legGeo = new THREE.CylinderGeometry(0.045, 0.07, h, 6);
+      for(var l=0;l<legOffsets.length;l++){
+        var leg = new THREE.Mesh(legGeo, MAT_METAL);
+        leg.position.set(x + legOffsets[l][0]*(1 - 0.5), baseY + h/2, z + legOffsets[l][1]*(1-0.5));
+        g.add(leg);
+      }
+      var braceGeo = new THREE.BoxGeometry(1.5, 0.05, 0.05);
+      for(var b=1;b<=3;b++){
+        var by = baseY + (h/4)*b;
+        var brace1 = new THREE.Mesh(braceGeo, MAT_METAL);
+        brace1.position.set(x, by, z - 0.55);
+        g.add(brace1);
+        var brace2 = new THREE.Mesh(braceGeo, MAT_METAL);
+        brace2.rotation.y = Math.PI/2;
+        brace2.position.set(x, by, z);
+        brace2.scale.z = 0.7;
+        g.add(brace2);
+      }
+      var crossArm = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.08, 0.08), MAT_METAL);
+      crossArm.position.set(x, baseY + h, z);
+      g.add(crossArm);
+      g.castShadow = false;
+      return g;
+    }
+
+    function buildSubstation(sideSign, outerX){
+      var group = new THREE.Group();
+      var baseY = W.riverY;
+      var yardX = outerX + sideSign * 4.5;
+      var yardDepth = 6.5;
+
+      var pad = new THREE.Mesh(new THREE.BoxGeometry(6.5, 0.2, yardDepth), MAT_CONCRETE_DARK);
+      pad.position.set(yardX, baseY + 0.1, 4.0);
+      pad.receiveShadow = false;
+      group.add(pad);
+
+      // Bancos de transformadores elevadores trifásicos (13,8 kV -> 500 kV)
+      var bankCount = 2;
+      for(var bnk=0; bnk<bankCount; bnk++){
+        var bankZ = 2.2 + bnk*2.6;
+        for(var ph=0; ph<3; ph++){
+          var xf = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.0, 1.5), MAT_TRANSFORMER);
+          xf.position.set(yardX + (ph-1)*1.35, baseY + 0.6, bankZ);
+          group.add(xf);
+          // radiadores esquemáticos
+          var rad = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.7, 0.12), MAT_METAL_DARK);
+          rad.position.set(yardX + (ph-1)*1.35, baseY + 0.55, bankZ + 0.85);
+          group.add(rad);
+          for(var k=0;k<2;k++){
+            var insulator = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.09, 0.45, 8), MAT_INSULATOR);
+            insulator.position.set(yardX + (ph-1)*1.35 + (k-0.5)*0.3, baseY + 1.3, bankZ);
+            group.add(insulator);
+          }
+        }
+      }
+
+      // Pórticos metálicos en celosía (torres reticuladas)
+      var towerZs = [6.6, 6.6];
+      var towerXs = [yardX - 1.6, yardX + 1.6];
+      for(var t=0;t<towerXs.length;t++){
+        var tower = buildLatticeTower(towerXs[t], towerZs[t], baseY, 3.4);
+        group.add(tower);
+      }
+
+      // Salida de líneas de alta tensión (catenaria esquemática) hacia el borde de la escena
+      var lineTargetX = sideSign * (Math.abs(outerX) + 34);
+      var lineY0 = baseY + 3.4;
+      var curvePts = [];
+      for(var cp=0; cp<=10; cp++){
+        var tt = cp/10;
+        var lx = lerp(yardX, lineTargetX, tt);
+        var lz = lerp(6.9, 6.9 + sideSign*2.0, tt);
+        var ly = lineY0 - Math.sin(tt*Math.PI)*0.6;
+        curvePts.push(new THREE.Vector3(lx, ly, lz));
+      }
+      var lineGeo = new THREE.BufferGeometry().setFromPoints(curvePts);
+      var lineMat = new THREE.LineBasicMaterial({ color: 0x9fb4c9 });
+      for(var lc=0; lc<2; lc++){
+        var line = new THREE.Line(lineGeo, lineMat);
+        line.position.z = (lc-0.5)*0.6;
+        group.add(line);
+      }
+
+      var labelText = sideSign === SIDE.ARG ? 'SUBESTACIÓN 500 kV — SALIDA SADI (ARGENTINA)' : 'SUBESTACIÓN 500 kV — SALIDA SIN (URUGUAY)';
+      var label = makeLabelSprite(labelText, { color: '#fcd34d', border: 'rgba(251,191,36,0.5)' });
+      label.position.set(yardX, baseY + 5.4, 6.9);
+      group.add(label);
+
+      var farLabel = makeLabelSprite(sideSign === SIDE.ARG ? '→ RED SADI' : '→ RED SIN', { color: '#93c5fd', fontSize: 34 });
+      farLabel.position.set(lineTargetX, lineY0 + 0.6, 6.9 + sideSign*2.0);
+      group.add(farLabel);
+
+      scene.add(group);
+      return group;
+    }
+
+    // ============================================================
+    //  ÁREAS TÉCNICAS CTM Y MUSEO ENERGIMUNDO
+    // ============================================================
+    function buildSimpleBuilding(x, z, baseY, w, h, d, wallMat, roofMat){
+      var g = new THREE.Group();
+      var body = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wallMat);
+      body.position.set(x, baseY + h/2, z);
+      g.add(body);
+      var roof = new THREE.Mesh(new THREE.ConeGeometry(Math.max(w,d)*0.72, h*0.5, 4), roofMat);
+      roof.rotation.y = Math.PI/4;
+      roof.position.set(x, baseY + h + h*0.22, z);
+      g.add(roof);
+      return g;
+    }
+
+    function buildCTMAreasAndMuseum(argOuterX, uruOuterX){
+      var baseY = W.riverY - 0.4;
+
+      // Área técnica administrativa margen Argentina
+      var ctmArg = new THREE.Group();
+      ctmArg.add(buildSimpleBuilding(argOuterX - 10, 11, baseY, 2.2, 1.6, 2.0, MAT_BUILDING, MAT_BUILDING_ROOF));
+      ctmArg.add(buildSimpleBuilding(argOuterX - 7.2, 12.5, baseY, 1.6, 1.2, 1.5, MAT_BUILDING, MAT_BUILDING_ROOF));
+      var road1 = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.05, 10), MAT_ROAD);
+      road1.position.set(argOuterX - 8.5, baseY + 0.03, 6);
+      ctmArg.add(road1);
+      var labelArg = makeLabelSprite('CTM · ÁREA TÉCNICA MARGEN ARGENTINA', { color: '#fcd34d', fontSize: 32 });
+      labelArg.position.set(argOuterX - 8.5, baseY + 3.4, 12);
+      ctmArg.add(labelArg);
+      scene.add(ctmArg);
+
+      // Área técnica administrativa margen Uruguay
+      var ctmUru = new THREE.Group();
+      ctmUru.add(buildSimpleBuilding(uruOuterX + 10, 11, baseY, 2.2, 1.6, 2.0, MAT_BUILDING, MAT_BUILDING_ROOF));
+      var road2 = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.05, 10), MAT_ROAD);
+      road2.position.set(uruOuterX + 8.5, baseY + 0.03, 6);
+      ctmUru.add(road2);
+      var labelUru = makeLabelSprite('CTM · ÁREA TÉCNICA MARGEN URUGUAY', { color: '#7dd3fc', fontSize: 32 });
+      labelUru.position.set(uruOuterX + 8.5, baseY + 3.4, 12);
+      ctmUru.add(labelUru);
+
+      // Museo Energimundo — guiño temático, junto a la casa de máquinas uruguaya
+      var museum = new THREE.Group();
+      var museumX = uruOuterX + 5.5, museumZ = 8.5;
+      var mBody = new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.9, 2.4), MAT_MUSEUM);
+      mBody.position.set(museumX, baseY + 0.95, museumZ);
+      museum.add(mBody);
+      var mDome = new THREE.Mesh(new THREE.SphereGeometry(1.05, 16, 12, 0, Math.PI*2, 0, Math.PI/2), MAT_MUSEUM_ACCENT);
+      mDome.position.set(museumX, baseY + 1.9, museumZ);
+      museum.add(mDome);
+      var mAccent = new THREE.Mesh(new THREE.BoxGeometry(2.7, 0.14, 2.5), MAT_MUSEUM_ACCENT);
+      mAccent.position.set(museumX, baseY + 1.92, museumZ);
+      museum.add(mAccent);
+      var museumLabel = makeLabelSprite('MUSEO ENERGIMUNDO', { color: '#22d3ee', border: 'rgba(34,211,238,0.6)', fontSize: 40 });
+      museumLabel.position.set(museumX, baseY + 3.6, museumZ);
+      museum.add(museumLabel);
+      ctmUru.add(museum);
+
+      scene.add(ctmUru);
+    }
+
+    // ============================================================
+    //  VEGETACIÓN RIBEREÑA Y ARBOLEDAS PARQUIZADAS (instanciadas)
+    // ============================================================
+    function scatterVegetation(){
+      var halfSpan = W.complexLength/2 + 30;
+      var TREE_COUNT = 560;
+      var trunkGeo = new THREE.CylinderGeometry(0.045, 0.065, 0.55, 6);
+      var foliageGeo = new THREE.ConeGeometry(0.34, 0.9, 7);
+      var trunkMesh = new THREE.InstancedMesh(trunkGeo, MAT_TRUNK, TREE_COUNT);
+      var foliageMesh = new THREE.InstancedMesh(foliageGeo, MAT_FOLIAGE, TREE_COUNT);
+      trunkMesh.castShadow = false; trunkMesh.receiveShadow = false;
+      foliageMesh.castShadow = false; foliageMesh.receiveShadow = false;
+
+      var placed = 0, attempts = 0, maxAttempts = TREE_COUNT * 8;
+      while(placed < TREE_COUNT && attempts < maxAttempts){
+        attempts++;
+        var x = (Math.random()-0.5) * halfSpan * 2;
+        var z = (Math.random()-0.5) * 300;
+        if(isWaterOrCore(x, z)) continue;
+        var terrainY = getTerrainHeight(x, z);
+        var scale = 0.7 + Math.random()*0.95;
+        _dummy.position.set(x, terrainY + 0.275*scale, z);
+        _dummy.rotation.set(0, Math.random()*Math.PI*2, 0);
+        _dummy.scale.set(scale, scale, scale);
+        _dummy.updateMatrix();
+        trunkMesh.setMatrixAt(placed, _dummy.matrix);
+        _dummy.position.set(x, terrainY + 0.5*scale + 0.45*scale, z);
+        _dummy.updateMatrix();
+        foliageMesh.setMatrixAt(placed, _dummy.matrix);
+        placed++;
+      }
+      trunkMesh.count = placed; foliageMesh.count = placed;
+      trunkMesh.instanceMatrix.needsUpdate = true;
+      foliageMesh.instanceMatrix.needsUpdate = true;
+      scene.add(trunkMesh); scene.add(foliageMesh);
+
+      // Arbustos / vegetación ribereña baja autóctona, más densa cerca de las márgenes
+      var SHRUB_COUNT = 340;
+      var shrubGeo = new THREE.IcosahedronGeometry(0.22, 0);
+      var shrubMesh = new THREE.InstancedMesh(shrubGeo, MAT_FOLIAGE_LOW, SHRUB_COUNT);
+      shrubMesh.castShadow = false; shrubMesh.receiveShadow = false;
+      var sPlaced = 0, sAttempts = 0;
+      while(sPlaced < SHRUB_COUNT && sAttempts < SHRUB_COUNT*8){
+        sAttempts++;
+        var sx2 = (Math.random()-0.5) * halfSpan * 2;
+        var sz2 = (Math.random()<0.5 ? -1 : 1) * (15 + Math.random()*18);
+        if(isWaterOrCore(sx2, sz2) && Math.abs(sz2) < 15) continue;
+        var ty2 = getTerrainHeight(sx2, sz2);
+        var sc2 = 0.6 + Math.random()*0.8;
+        _dummy.position.set(sx2, ty2 + 0.16*sc2, sz2);
+        _dummy.rotation.set(Math.random()*0.3, Math.random()*Math.PI*2, Math.random()*0.3);
+        _dummy.scale.set(sc2, sc2*0.7, sc2);
+        _dummy.updateMatrix();
+        shrubMesh.setMatrixAt(sPlaced, _dummy.matrix);
+        sPlaced++;
+      }
+      shrubMesh.count = sPlaced;
+      shrubMesh.instanceMatrix.needsUpdate = true;
+      scene.add(shrubMesh);
+    }
+
+    // ============================================================
+    //  AFLORAMIENTOS ROCOSOS DE BASALTO (Formación Arapey, instanciados)
+    // ============================================================
+    function scatterRocks(){
+      var halfSpan = W.complexLength/2 + 30;
+      var rockGeo = new THREE.DodecahedronGeometry(0.32, 0);
+      var mats = [MAT_ROCK_A, MAT_ROCK_B, MAT_ROCK_C];
+      var perMat = 85;
+      for(var m=0;m<mats.length;m++){
+        var mesh = new THREE.InstancedMesh(rockGeo, mats[m], perMat);
+        mesh.castShadow = false; mesh.receiveShadow = false;
+        var placed = 0, attempts = 0;
+        while(placed < perMat && attempts < perMat*10){
+          attempts++;
+          var x = (Math.random()-0.5) * halfSpan * 2;
+          var side = Math.random()<0.5 ? -1 : 1;
+          var z = side * (14 + Math.random()*20);
+          if(Math.abs(x) < W.damLength/2 + 3) continue;
+          var ty = getTerrainHeight(x, z);
+          var sc = 0.5 + Math.random()*1.1;
+          _dummy.position.set(x, ty + 0.12*sc, z);
+          _dummy.rotation.set(Math.random()*Math.PI, Math.random()*Math.PI, Math.random()*Math.PI);
+          _dummy.scale.set(sc, sc*0.75, sc);
+          _dummy.updateMatrix();
+          mesh.setMatrixAt(placed, _dummy.matrix);
+          placed++;
+        }
+        mesh.count = placed;
+        mesh.instanceMatrix.needsUpdate = true;
+        scene.add(mesh);
+      }
+    }
+
+    // ============================================================
+    //  CORTE TÉCNICO: TURBINA KAPLAN + GENERADOR (RAYOS-X, margen Uruguay)
+    // ============================================================
+    function buildTurbineCutaway(unitX){
+      W.cutX = unitX;
+      var baseY = W.riverY;
+      var resY = W.reservoirY;
+      var depthHalf = W.wallThickness/2;
+
+      // --- Bahía sólida (se oculta en modo rayos-X) ---
+      var bayGroup = new THREE.Group();
+      var bay = new THREE.Mesh(new THREE.BoxGeometry(3.0, resY - baseY + 6.0, W.wallThickness + 4), MAT_CONCRETE.clone());
+      bay.position.set(unitX, baseY + (resY - baseY + 6.0)/2 - 1.5, 0);
+      bay.castShadow = true; bay.receiveShadow = true;
+      bayGroup.add(bay);
+      scene.add(bayGroup);
+      W.solidBay = bayGroup;
+
+      // --- Grupo de corte (visible sólo en rayos-X) ---
+      var cut = new THREE.Group();
+
+      // Reja / toma de agua superior — captación a cota ~20 m s.n.m.
+      var intakeY = resY - 0.6;
+      var intakeZ = -depthHalf - 0.6;
+      var intakeGroup = new THREE.Group();
+      var frame = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.6, 0.3), MAT_CONCRETE_DARK);
+      frame.position.set(unitX, intakeY, intakeZ);
+      intakeGroup.add(frame);
+      for(var b=0;b<8;b++){
+        var bar = new THREE.Mesh(new THREE.BoxGeometry(0.05, 1.5, 0.05), MAT_METAL);
+        bar.position.set(unitX - 1.0 + b*0.28, intakeY, intakeZ + 0.18);
+        intakeGroup.add(bar);
+      }
+      var maintGate = new THREE.Mesh(new THREE.BoxGeometry(1.9, 1.5, 0.12), MAT_GATE_MAINT);
+      maintGate.position.set(unitX, intakeY + 1.0, intakeZ - 0.25);
+      intakeGroup.add(maintGate);
+      cut.add(intakeGroup);
+
+      // Tubería forzada acodada (penstock con codo característico)
+      var penTopY = intakeY - 0.5;
+      var penMidY = penTopY - 1.5;
+      var penBottomY = baseY + 2.2;
+      var penTopZ = intakeZ + 0.3;
+      var penMidZ = intakeZ*0.45;
+      var penBottomZ = -0.4;
+      var elbow = new THREE.Mesh(new THREE.SphereGeometry(0.9, 12, 10), MAT_METAL_DARK.clone());
+      elbow.position.set(unitX + 0.1, penMidY, penMidZ);
+      elbow.castShadow = true;
+      cut.add(elbow);
+      var seg1Length = Math.sqrt(Math.pow(penTopY-penMidY,2) + Math.pow(penTopZ-penMidZ,2));
+      var seg1 = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.92, seg1Length, 16, 1, true), MAT_METAL_DARK.clone());
+      seg1.material.side = THREE.DoubleSide;
+      seg1.position.set(unitX + 0.12, (penTopY+penMidY)/2, (penTopZ+penMidZ)/2);
+      seg1.rotation.x = Math.atan2(penTopZ-penMidZ, penTopY-penMidY);
+      seg1.castShadow = true;
+      cut.add(seg1);
+      var seg2Length = Math.sqrt(Math.pow(penMidY-penBottomY,2) + Math.pow(penMidZ-penBottomZ,2));
+      var seg2 = new THREE.Mesh(new THREE.CylinderGeometry(0.92, 1.05, seg2Length, 16, 1, true), MAT_METAL_DARK.clone());
+      seg2.material.side = THREE.DoubleSide;
+      seg2.position.set(unitX + 0.15, (penMidY+penBottomY)/2, (penMidZ+penBottomZ)/2);
+      seg2.rotation.x = Math.atan2(penMidZ-penBottomZ, penMidY-penBottomY);
+      seg2.castShadow = true;
+      cut.add(seg2);
+
+      // Cámara espiral (scroll case) — toroide envolvente
+      var scrollY = penBottomY - 0.1;
+      var scroll = new THREE.Mesh(new THREE.TorusGeometry(1.3, 0.55, 14, 26, Math.PI*1.65), MAT_METAL.clone());
+      scroll.rotation.x = Math.PI/2;
+      scroll.rotation.z = Math.PI*0.15;
+      scroll.position.set(unitX, scrollY, 0.1);
+      scroll.castShadow = true;
+      cut.add(scroll);
+
+      // --- Distribuidor Fink (álabes directrices, orientables) ---
+      var wicketY = scrollY - 0.55;
+      var wicketRadius = 1.0;
+      var wicketCount = 12;
+      for(var w=0; w<wicketCount; w++){
+        var ang = (w/wicketCount)*Math.PI*2;
+        var wx = unitX + Math.cos(ang)*wicketRadius;
+        var wz = Math.sin(ang)*wicketRadius;
+        var blade = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.09, 0.16), MAT_METAL.clone());
+        blade.position.set(wx, wicketY, wz);
+        blade.rotation.y = ang + Math.PI/2;
+        cut.add(blade);
+        W.wicketBlades.push(blade);
+      }
+
+      // --- Rotor mecánico: eje + rodete Kaplan (Ø 8,5 m, 6 álabes) + rotor del generador ---
+      var rotor = new THREE.Group();
+      rotor.position.set(unitX, 0, 0);
+
+      var runnerY = wicketY - 0.45;
+      var hub = new THREE.Mesh(new THREE.ConeGeometry(0.55, 0.9, 16), MAT_METAL_DARK.clone());
+      hub.position.set(0, runnerY, 0);
+      hub.castShadow = true;
+      rotor.add(hub);
+
+      var bladeCount = REAL.RUNNER_BLADES; // 6, de paso variable
+      for(var kb=0; kb<bladeCount; kb++){
+        var kang = (kb/bladeCount)*Math.PI*2;
+        var kaplanBlade = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.1, 0.5), MAT_METAL.clone());
+        kaplanBlade.position.set(Math.cos(kang)*0.55, runnerY - 0.15, Math.sin(kang)*0.55);
+        kaplanBlade.rotation.y = kang;
+        kaplanBlade.rotation.z = 0.25;
+        rotor.add(kaplanBlade);
+        W.kaplanBlades.push(kaplanBlade);
+      }
+
+      var shaftTopY = resY + 3.6;
+      var shaftHeight = shaftTopY - runnerY;
+      var shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, shaftHeight, 14), MAT_METAL.clone());
+      shaft.position.set(0, runnerY + shaftHeight/2, 0);
+      shaft.castShadow = true;
+      rotor.add(shaft);
+
+      var genRotorY = shaftTopY - 1.1;
+      var genRotorCore = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.0, 1.3, 20), MAT_METAL_DARK.clone());
+      genRotorCore.position.set(0, genRotorY, 0);
+      genRotorCore.castShadow = true;
+      rotor.add(genRotorCore);
+      var poleCount = 10;
+      for(var pg=0; pg<poleCount; pg++){
+        var pang = (pg/poleCount)*Math.PI*2;
+        var pole2 = new THREE.Mesh(new THREE.BoxGeometry(0.22, 1.25, 0.32), MAT_METAL_COPPER.clone());
+        pole2.position.set(Math.cos(pang)*1.12, genRotorY, Math.sin(pang)*1.12);
+        pole2.rotation.y = pang;
+        rotor.add(pole2);
+      }
+
+      cut.add(rotor);
+      W.rotorGroup = rotor;
+
+      // Estator ranurado con bobinado (fijo, no rota) — Ley de Faraday
+      var statorCore = new THREE.Mesh(new THREE.CylinderGeometry(1.55, 1.55, 1.5, 28, 1, true), MAT_METAL_DARK.clone());
+      statorCore.material.side = THREE.DoubleSide;
+      statorCore.position.set(unitX, genRotorY, 0);
+      statorCore.castShadow = true;
+      cut.add(statorCore);
+      var windingCount = 22;
+      for(var wc=0; wc<windingCount; wc++){
+        var wang = (wc/windingCount)*Math.PI*2;
+        var winding = new THREE.Mesh(new THREE.TorusGeometry(0.09, 0.035, 6, 10), MAT_METAL_COPPER.clone());
+        winding.rotation.x = Math.PI/2;
+        winding.position.set(unitX + Math.cos(wang)*1.62, genRotorY, Math.sin(wang)*1.62);
+        cut.add(winding);
+      }
+
+      var genCap = new THREE.Mesh(new THREE.CylinderGeometry(1.65, 1.5, 0.5, 24), MAT_CONCRETE_DARK.clone());
+      genCap.position.set(unitX, genRotorY + 1.0, 0);
+      genCap.castShadow = true;
+      cut.add(genCap);
+
+      // Tubo de aspiración (difusor) — restitución hacia el río Uruguay
+      var draftStartY = runnerY - 0.6;
+      var draftEndY = baseY - 0.4;
+      var draftGeo = new THREE.CylinderGeometry(0.7, 1.9, draftStartY - draftEndY, 18, 1, true);
+      var draft = new THREE.Mesh(draftGeo, MAT_CONCRETE.clone());
+      draft.material.side = THREE.DoubleSide;
+      draft.position.set(unitX, (draftStartY+draftEndY)/2, 0.6);
+      draft.castShadow = true; draft.receiveShadow = true;
+      cut.add(draft);
+
+      cut.visible = false;
+      scene.add(cut);
+      W.cutawayGroup = cut;
+
+      // ---- Curva de la trayectoria de partículas: toma -> penstock -> espiral -> rodete -> difusor ----
+      var p0 = new THREE.Vector3(unitX - 0.3, resY - 0.15, intakeZ - 0.4);
+      var p1 = new THREE.Vector3(unitX, intakeY - 0.4, intakeZ + 0.2);
+      var p2 = new THREE.Vector3(unitX + 0.15, penMidY, penMidZ);
+      var p3 = new THREE.Vector3(unitX + 0.35, scrollY + 0.4, 0.15);
+      var p4 = new THREE.Vector3(unitX + 0.35, runnerY, 0.2);
+      var p5 = new THREE.Vector3(unitX + 0.3, draftEndY + 0.6, 0.7);
+      var p6 = new THREE.Vector3(unitX + 0.2, baseY - 0.1, depthHalf + 3.0);
+      W.mainParticleCurve = new THREE.CatmullRomCurve3([p0,p1,p2,p3,p4,p5,p6], false, 'catmullrom', 0.45);
+    }
+
+    // ============================================================
+    //  PARTÍCULAS: FLUJO TURBINADO NORMAL Y VERTIDO DE CRECIDAS
+    // ============================================================
+    var mainParticles, mainParticleData;
+    var spillwayParticles, spillwayParticleData;
+
+    function initParticles(){
+      var N_MAIN = 2400;
+      var geo = new THREE.BufferGeometry();
+      var positions = new Float32Array(N_MAIN * 3);
+      mainParticleData = [];
+      for(var i=0;i<N_MAIN;i++){
+        mainParticleData.push({
+          phase: Math.random(),
+          jitter: new THREE.Vector3((Math.random()-0.5)*0.5, (Math.random()-0.5)*0.35, (Math.random()-0.5)*0.5),
+          spiralPhase: Math.random()*Math.PI*2,
+          spiralR: 0.55 + Math.random()*0.5
+        });
+      }
+      geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      var mat = new THREE.PointsMaterial({
+        color: 0x8fe9ff, size: 0.16, transparent: true, opacity: 0.85,
+        depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true
+      });
+      mainParticles = new THREE.Points(geo, mat);
+      scene.add(mainParticles);
+
+      var N_SPILL = 1300;
+      var geo2 = new THREE.BufferGeometry();
+      var positions2 = new Float32Array(N_SPILL * 3);
+      spillwayParticleData = [];
+      var slotCount = Math.max(1, W.spillwayGateSlots.length);
+      for(var j=0;j<N_SPILL;j++){
+        spillwayParticleData.push({
+          slot: Math.floor(Math.random() * slotCount),
+          phase: Math.random(),
+          lateral: (Math.random()-0.5) * (W.spillwayLength/slotCount) * 0.9,
+          speed: 0.6 + Math.random()*0.9,
+          foam: Math.random()
+        });
+      }
+      geo2.setAttribute('position', new THREE.BufferAttribute(positions2, 3));
+      var mat2 = new THREE.PointsMaterial({
+        color: 0xf3fbff, size: 0.15, transparent: true, opacity: 0.0,
+        depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true
+      });
+      spillwayParticles = new THREE.Points(geo2, mat2);
+      scene.add(spillwayParticles);
+    }
+
+    function updateParticles(dt){
+      var curve = W.mainParticleCurve;
+      if(curve){
+        var speedFactor = 0.12 + state.flowRatio * 0.85;
+        var arr = mainParticles.geometry.attributes.position.array;
+        for(var i=0;i<mainParticleData.length;i++){
+          var d = mainParticleData[i];
+          var t = (d.phase + state.time * speedFactor) % 1;
+          var pt = curve.getPoint(t);
+          var spiralWin = windowFn(t, 0.42, 0.5, 0.64, 0.74);
+          var baseWin = 1 - spiralWin;
+          var angle = d.spiralPhase + t * Math.PI * 10;
+          var sx2 = Math.cos(angle) * d.spiralR * spiralWin;
+          var sz2 = Math.sin(angle) * d.spiralR * spiralWin;
+          var ix = i*3;
+          arr[ix]   = pt.x + d.jitter.x * baseWin * 0.6 + sx2;
+          arr[ix+1] = pt.y + d.jitter.y * baseWin * 0.5;
+          arr[ix+2] = pt.z + d.jitter.z * baseWin * 0.6 + sz2;
+        }
+        mainParticles.geometry.attributes.position.needsUpdate = true;
+        mainParticles.material.opacity = 0.35 + state.flowRatio * 0.55;
+        mainParticles.material.size = 0.11 + state.flowRatio * 0.08;
+      }
+
+      var slots = W.spillwayGateSlots;
+      if(slots.length){
+        var active = state.spillwayOpen;
+        spillwayParticles.material.opacity = active ? clamp(0.4 + state.flowRatio*0.45, 0, 0.92) : 0;
+        var arr2 = spillwayParticles.geometry.attributes.position.array;
+        var g = 9.8 * 0.14;
+        for(var j=0;j<spillwayParticleData.length;j++){
+          var sd = spillwayParticleData[j];
+          var slot = slots[sd.slot % slots.length];
+          var t2 = active ? (sd.phase + state.time * sd.speed * (0.6 + state.flowRatio)) % 1 : ((sd.phase) % 1);
+          var yPos = lerp(slot.crestY, W.riverY - 0.3, t2) - g * t2*t2 * 2.2;
+          var zPos = lerp(0, W.wallThickness*0.95, t2);
+          var jx = j*3;
+          arr2[jx]   = slot.x + sd.lateral * (0.3 + t2*0.7) + Math.sin(sd.foam*30 + state.time*4)*0.03;
+          arr2[jx+1] = Math.max(yPos, W.riverY - 0.4);
+          arr2[jx+2] = zPos + (Math.random()-0.5)*0.06;
+        }
+        spillwayParticles.geometry.attributes.position.needsUpdate = true;
+      }
+    }
+
+    // ============================================================
+    //  FÍSICA HIDROELÉCTRICA EN TIEMPO REAL
+    // ============================================================
+    var REF_Q_MAX_TAILWATER = 21000; // caudal total de descarga (turbinado + excedente) que lleva la restitución a su cota máxima (14,00 m), escala de crecida extraordinaria real de Salto Grande
+
+    function updatePhysics(dt){
+      state.time += dt;
+
+      // Cota de embalse: valor de consigna (slider del usuario) + pequeña ondulación física
+      var jitterEmbalse = Math.sin(state.time*0.07 + 1.3)*0.03 + Math.sin(state.time*0.31 + 0.4)*0.015;
+      state.cotaEmbalse = clamp(state.cotaEmbalseSlider + jitterEmbalse, REAL.EMBALSE_MIN_M, REAL.EMBALSE_MAX_M);
+
+      var qCap = state.turbinesActive * REAL.Q_PER_TURBINE_NOMINAL;
+      state.qTurbinado = Math.min(state.flowTotal, qCap);
+      state.qPerTurbine = state.turbinesActive > 0 ? state.qTurbinado / state.turbinesActive : 0;
+      state.qExcedente = Math.max(0, state.flowTotal - qCap);
+
+      // Cota de restitución: crece con el caudal total erogado (turbinado + vertido), entre 6,00 y 14,00 m
+      var qTotalDischarge = state.qTurbinado + state.qExcedente;
+      var jitterAguasAbajo = Math.sin(state.time*0.05 + 2.1)*0.04;
+      var restRatio = clamp(qTotalDischarge / REF_Q_MAX_TAILWATER, 0, 1);
+      state.cotaAguasAbajo = clamp(
+        REAL.RESTITUCION_MIN_M + restRatio * (REAL.RESTITUCION_MAX_M - REAL.RESTITUCION_MIN_M) + jitterAguasAbajo,
+        REAL.RESTITUCION_MIN_M, REAL.RESTITUCION_MAX_M
+      );
+
+      // Pérdidas de carga (Δh): término pequeño, crece levemente con el caudal turbinado
+      var perdidas = 0.3 + 0.2 * clamp(state.qTurbinado / REAL.Q_TOTAL_NOMINAL, 0, 1.3);
+
+      var headRaw = state.cotaEmbalse - state.cotaAguasAbajo - perdidas;
+      state.headNet = clamp(headRaw, REAL.HEAD_MIN, REAL.HEAD_MAX);
+
+      // P = eta * rho * g * Q * H  (fórmula física estándar, en Watts -> MW)
+      var powerW = REAL.ETA * REAL.RHO * REAL.G * state.qTurbinado * state.headNet;
+      state.powerMW = powerW / 1e6;
+      state.uteMW = state.powerMW / 2;
+      state.cammesaMW = state.powerMW / 2;
+
+      // Frecuencia de red: 50,00 Hz con oscilación física acotada a ±0,02 Hz
+      freqNoiseTimer += dt;
+      if(freqNoiseTimer > 0.7){
+        freqNoiseTimer = 0;
+        freqNoiseTarget = (Math.random()-0.5) * 0.016;
+      }
+      freqNoiseCurrent += (freqNoiseTarget - freqNoiseCurrent) * Math.min(1, dt*1.4);
+      var freqDeviation = Math.sin(state.time*0.09 + freqPhase)*0.01 + freqNoiseCurrent;
+      state.freq = REAL.FREQ_NOMINAL + clamp(freqDeviation, -0.02, 0.02);
+
+      state.flowRatio = clamp(state.qTurbinado / REAL.Q_TOTAL_NOMINAL, 0, 1.3);
+    }
+
+    // ============================================================
+    //  ANIMACIÓN MECÁNICA (turbina Kaplan, distribuidor, compuertas, grúas)
+    // ============================================================
+    function updateMechanics(dt){
+      var unitRatio = state.turbinesActive > 0 ? clamp(state.qPerTurbine / REAL.Q_PER_TURBINE_NOMINAL, 0, 1.15) : 0;
+
+      // Velocidad síncrona nominal real: 75 rpm (0,8 s/vuelta) a plena carga, escalada por caudal
+      var omegaNominal = (REAL.SYNC_RPM / 60) * Math.PI * 2; // rad/s a 75 rpm
+      state.turbineAngularSpeed = state.turbinesActive > 0 ? lerp(0.28, omegaNominal, unitRatio) : 0;
+      if(W.rotorGroup) W.rotorGroup.rotation.y += state.turbineAngularSpeed * dt;
+
+      var openAngle = lerp(0.08, 0.62, unitRatio);
+      for(var i=0;i<W.wicketBlades.length;i++){
+        W.wicketBlades[i].rotation.z = openAngle;
+      }
+      for(var k=0;k<W.kaplanBlades.length;k++){
+        W.kaplanBlades[k].rotation.z = lerp(0.05, 0.42, unitRatio);
+      }
+
+      updateTurbineIndicators();
+
+      // Grúas pórtico: desplazamiento lento del carro sobre el riel (decorativo)
+      for(var c=0;c<W.craneTrolleys.length;c++){
+        var ct = W.craneTrolleys[c];
+        var off = Math.sin(state.time*0.15 + ct.phase) * ct.range;
+        ct.mesh.position.x = ct.centerX + off;
+        ct.hook.position.x = ct.centerX + off;
+      }
+    }
+
+    function updateTurbineIndicators(){
+      var split = splitTurbines(state.turbinesActive);
+      setIndicatorGroup(W.indicatorsARG, split.arg);
+      setIndicatorGroup(W.indicatorsURU, split.uru);
+    }
+
+    function setIndicatorGroup(list, activeCount){
+      for(var i=0;i<list.length;i++){
+        var on = i < activeCount;
+        var mat = list[i].material;
+        mat.color.set(on ? 0x34d399 : 0x475569);
+        mat.emissive.set(on ? 0x22c55e : 0x000000);
+        mat.emissiveIntensity = on ? 1.6 : 0;
+      }
+    }
+
+    function splitTurbines(n){
+      var arg = Math.min(REAL.TURBINES_PER_SIDE, Math.ceil(n/2));
+      var uru = n - arg;
+      if(uru > REAL.TURBINES_PER_SIDE){ uru = REAL.TURBINES_PER_SIDE; arg = n - uru; }
+      return { arg: arg, uru: uru };
+    }
+
+    // ============================================================
+    //  ANIMACIÓN DE COMPUERTAS DEL VERTEDERO (19 vanos, instanciadas)
+    // ============================================================
+    function animateSpillwayGates(dt){
+      var target = state.spillwayOpen ? 1 : 0;
+      W.gateProgress += (target - W.gateProgress) * Math.min(1, dt * 1.7);
+      var mesh = W.spillwayGatesMesh;
+      if(!mesh) return;
+      for(var i=0;i<W.spillwayGateSlots.length;i++){
+        var slot = W.spillwayGateSlots[i];
+        var y = lerp(slot.closedY, slot.openY, W.gateProgress);
+        var tilt = lerp(slot.closedTilt, slot.openTilt, W.gateProgress);
+        _dummy.position.set(slot.x, y, 0);
+        _dummy.rotation.set(tilt, 0, 0);
+        _dummy.scale.set(1,1,1);
+        _dummy.updateMatrix();
+        mesh.setMatrixAt(i, _dummy.matrix);
+      }
+      mesh.instanceMatrix.needsUpdate = true;
+    }
+
+    // ============================================================
+    //  MODO RAYOS-X
+    // ============================================================
+    function setXray(on){
+      state.xray = on;
+      if(W.solidBay) W.solidBay.visible = !on;
+      if(W.cutawayGroup) W.cutawayGroup.visible = on;
+      var btn = document.getElementById('xray-toggle');
+      if(btn) btn.classList.toggle('xray-active', on);
+    }
+
+    // ============================================================
+    //  CÁMARAS: 5 VISTAS GUIADAS Y TRANSICIONES SUAVES (lerp + easing)
+    // ============================================================
+    var camAnim = null;
+
+    function getCameraViews(){
+      var half = W.spillwayLength/2;
+      var span = (W.damLength - W.spillwayLength)/2;
+      var halfComplex = W.complexLength/2;
+      var uruYardX = (half+span) * SIDE.URU + SIDE.URU*4.5;
+      return {
+        panoramica: {
+          pos: new THREE.Vector3(46, 78, 150),
+          look: new THREE.Vector3(0, W.riverY + 2, -30)
+        },
+        vertedero: {
+          pos: new THREE.Vector3(2, 13, 24),
+          look: new THREE.Vector3(0, W.reservoirY - 1, -6)
+        },
+        kaplan: {
+          pos: new THREE.Vector3(W.cutX + 5.5, 5.5, 6.5),
+          look: new THREE.Vector3(W.cutX, 3.2, 0)
+        },
+        puente: {
+          pos: new THREE.Vector3(halfComplex*0.55, W.crownY + 1.5, -0.6),
+          look: new THREE.Vector3(halfComplex*0.1, W.crownY + 0.6, -1.4)
+        },
+        subestaciones: {
+          pos: new THREE.Vector3(uruYardX - 2.5, W.riverY + 6.5, 16),
+          look: new THREE.Vector3(uruYardX, W.riverY + 2.0, 5)
+        }
+      };
+    }
+
+    function startCameraTransition(pos, look, duration){
+      camAnim = {
+        startPos: camera.position.clone(),
+        endPos: pos.clone(),
+        startLook: controls.target.clone(),
+        endLook: look.clone(),
+        elapsed: 0,
+        duration: duration || 1.8
+      };
+      controls.enabled = false;
+    }
+
+    function updateCameraTransition(dt){
+      if(!camAnim) return;
+      camAnim.elapsed += dt;
+      var t = clamp(camAnim.elapsed / camAnim.duration, 0, 1);
+      var e = easeInOutCubic(t);
+      camera.position.lerpVectors(camAnim.startPos, camAnim.endPos, e);
+      var look = new THREE.Vector3().lerpVectors(camAnim.startLook, camAnim.endLook, e);
+      controls.target.copy(look);
+      camera.lookAt(look);
+      if(t >= 1){
+        camAnim = null;
+        controls.enabled = true;
+      }
+    }
+
+    function setActiveViewButton(name){
+      var btns = document.querySelectorAll('.sg-view-btns .sg-btn');
+      btns.forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-view') === name); });
+    }
+
+    function goToView(name){
+      state.cameraView = name;
+      var v = getCameraViews()[name];
+      if(v) startCameraTransition(v.pos, v.look, 1.9);
+      if(name === 'kaplan' && !state.xray) setXray(true);
+      setActiveViewButton(name);
+    }
+
+    // ============================================================
+    //  TOUR EDUCATIVO GUIADO (6 pasos, mapeados a las 5 vistas guiadas)
+    // ============================================================
+    var VIEW_LABELS = {
+      panoramica: 'PANORÁMICA BINACIONAL',
+      vertedero: 'VERTEDERO CENTRAL',
+      kaplan: 'CORTE TÉCNICO KAPLAN',
+      puente: 'PUENTE INTERNACIONAL',
+      subestaciones: 'SUBESTACIONES 500kV'
+    };
+
+    var tourSteps = [];
+    var tourState = { open: false, index: 0 };
+
+    function buildTourSteps(){
+      var half = W.spillwayLength/2;
+      var span = (W.damLength - W.spillwayLength)/2;
+      tourSteps = [
+        {
+          title: 'El embalse y la cota: energía potencial',
+          text: 'El Lago Salto Grande cubre <b>783 km²</b> y almacena <b>5.000 hm³</b> de agua del río Uruguay, contenidos por el eje de la presa que corre de <b>Oeste-Noroeste a Este-Sureste</b>. Esa masa de agua retenida a una cota elevada (normal: <b>35,00 m s.n.m.</b>) constituye energía potencial gravitatoria: cuanto mayor la diferencia de altura con la restitución aguas abajo, mayor la energía disponible por cada m³ turbinado.',
+          fact: 'Salto neto de diseño: 25,3 m (rango operativo 18–26 m)',
+          xray: false,
+          viewKey: 'panoramica',
+          cam: { pos: new THREE.Vector3(10, 20, 58), look: new THREE.Vector3(0, W.reservoirY - 0.5, 4) }
+        },
+        {
+          title: 'Toma de agua y compuertas de mantenimiento',
+          text: 'A cota aproximada de <b>20 m s.n.m.</b>, el agua ingresa por una <b>reja de toma</b> que retiene sedimentos y objetos flotantes, y por <b>compuertas de mantenimiento</b> que permiten aislar cada una de las 14 unidades para inspección sin detener las restantes.',
+          fact: 'Cada margen (ARG/URU) tiene 7 tomas de agua independientes',
+          xray: true,
+          viewKey: 'kaplan',
+          cam: { pos: new THREE.Vector3(W.cutX - 4, 8, -8), look: new THREE.Vector3(W.cutX, W.reservoirY - 1, -3) }
+        },
+        {
+          title: 'Tubería forzada acodada: energía cinética',
+          text: 'El agua desciende por la <b>tubería forzada de hormigón acodada</b>, cuyo codo característico redirige el flujo hacia la cámara espiral. Aquí la energía potencial se transforma en <b>energía cinética</b>: la velocidad del agua aumenta a medida que cae hacia la turbina.',
+          fact: 'Caudal nominal por unidad: 610 m³/s (≈8.540 m³/s con las 14 unidades)',
+          xray: true,
+          viewKey: 'kaplan',
+          cam: { pos: new THREE.Vector3(W.cutX + 4.5, 5.5, 3.5), look: new THREE.Vector3(W.cutX, 4.0, 0) }
+        },
+        {
+          title: 'Turbina Kaplan de eje vertical y paso variable',
+          text: 'El agua pasa por la <b>cámara espiral</b> y el <b>distribuidor Fink</b>, que regula el caudal admitido. Luego incide sobre el <b>rodete Kaplan</b> de 8,5 m de diámetro y 6 álabes orientables, montado en un eje vertical: la energía cinética se convierte en energía mecánica de rotación, a una velocidad síncrona nominal de <b>75 rpm</b> (0,8 s por vuelta) a plena carga.',
+          fact: '14 turbinas Kaplan de eje vertical — 135 MW cada una (1.890 MW instalados)',
+          xray: true,
+          viewKey: 'kaplan',
+          cam: { pos: new THREE.Vector3(W.cutX + 2.6, 2.6, 3.0), look: new THREE.Vector3(W.cutX, 2.2, 0) }
+        },
+        {
+          title: 'Rotor / estator y la ley de Faraday',
+          text: 'El eje transmite el giro al <b>rotor del generador</b>, cuyos polos magnéticos giran dentro del <b>estator</b> bobinado. Por <b>inducción electromagnética</b> (Ley de Faraday), ese campo magnético variable induce una corriente alterna en los devanados: nace la energía eléctrica, sincronizada a la frecuencia de red.',
+          fact: 'Frecuencia nominal generada: 50,00 Hz (± 0,02 Hz)',
+          xray: true,
+          viewKey: 'kaplan',
+          cam: { pos: new THREE.Vector3(W.cutX + 2.8, 9.5, 3.2), look: new THREE.Vector3(W.cutX, 8.8, 0) }
+        },
+        {
+          title: 'Subestaciones 500 kV y el reparto binacional',
+          text: 'La energía generada se eleva a <b>500 kV</b> en las subestaciones transformadoras de ambas márgenes y se inyecta hacia el <b>SADI</b> (Argentina) y el <b>SIN</b> (Uruguay). Por tratado binacional, la <b>Comisión Técnica Mixta de Salto Grande (CTM)</b> reparte la potencia siempre en partes exactamente iguales: 50% CAMMESA / 50% UTE.',
+          fact: 'Generación media anual histórica: 8.546 GWh',
+          xray: false,
+          viewKey: 'subestaciones',
+          cam: { pos: new THREE.Vector3((half+span)*SIDE.URU + 8, 11, 18), look: new THREE.Vector3((half+span)*SIDE.URU + 4, W.riverY + 2.5, 5) }
+        }
+      ];
+    }
+
+    function openTour(){
+      tourState.open = true;
+      document.getElementById('sg-tour').classList.add('open');
+      renderTourStep();
+    }
+    function closeTour(){
+      tourState.open = false;
+      document.getElementById('sg-tour').classList.remove('open');
+    }
+    function renderTourStep(){
+      var step = tourSteps[tourState.index];
+      document.getElementById('tour-step-badge').textContent = sg3dT('tour-step-prefix') + ' ' + (tourState.index+1) + ' / ' + tourSteps.length;
+      document.getElementById('tour-view-badge').textContent = sg3dT('tour-view-prefix') + ' ' + sg3dT('view-' + step.viewKey);
+      document.getElementById('tour-title').textContent = sg3dTourField(tourState.index, 'title', step.title);
+      document.getElementById('tour-text').innerHTML = sg3dTourField(tourState.index, 'text', step.text) + '<div class="sg-fact">' + sg3dTourField(tourState.index, 'fact', step.fact) + '</div>';
+      var dotsWrap = document.getElementById('tour-dots');
+      dotsWrap.innerHTML = '';
+      for(var i=0;i<tourSteps.length;i++){
+        var dot = document.createElement('div');
+        dot.className = 'sg-tour-dot' + (i === tourState.index ? ' active' : '');
+        dotsWrap.appendChild(dot);
+      }
+      document.getElementById('tour-prev-btn').disabled = tourState.index === 0;
+      document.getElementById('tour-prev-btn').style.opacity = tourState.index === 0 ? 0.4 : 1;
+      document.getElementById('tour-next-btn').textContent = tourState.index === tourSteps.length-1 ? sg3dT('tour-btn-restart') : sg3dT('tour-btn-next');
+
+      startCameraTransition(step.cam.pos, step.cam.look, 2.0);
+      setXray(!!step.xray);
+      setActiveViewButton(step.viewKey);
+      state.cameraView = step.viewKey;
+    }
+    function tourNext(){
+      if(tourState.index >= tourSteps.length - 1){ tourState.index = 0; }
+      else { tourState.index++; }
+      renderTourStep();
+    }
+    function tourPrev(){
+      if(tourState.index > 0){ tourState.index--; renderTourStep(); }
+    }
+
+    // ============================================================
+    //  BRÚJULA DEL HUD (rosa de los vientos ligada al azimut de cámara)
+    // ============================================================
+    var compassRing = document.getElementById('compass-ring');
+    function updateCompass(){
+      if(!compassRing) return;
+      var dx = camera.position.x - controls.target.x;
+      var dz = camera.position.z - controls.target.z;
+      var azimuthDeg = Math.atan2(dx, dz) * (180/Math.PI); // 0 = mirando desde el Norte (-Z)
+      compassRing.style.transform = 'rotate(' + (-azimuthDeg) + 'deg)';
+    }
+
+    // ============================================================
+    //  HUD: LECTURA DE TELEMETRÍA
+    // ============================================================
+    function updateHUD(){
+      document.getElementById('tel-nivel').innerHTML = state.cotaEmbalse.toFixed(2) + '<small>m s.n.m.</small>';
+      document.getElementById('tel-restitucion').innerHTML = state.cotaAguasAbajo.toFixed(2) + '<small>m s.n.m.</small>';
+      document.getElementById('tel-salto').innerHTML = state.headNet.toFixed(2) + '<small>m</small>';
+      document.getElementById('tel-caudal').innerHTML = Math.round(state.qTurbinado) + '<small>m³/s</small>';
+
+      var pct = clamp((state.powerMW / REAL.POWER_MW) * 100, 0, 100);
+      document.getElementById('tel-potencia').innerHTML = state.powerMW.toFixed(1) + '<small>MW</small>';
+      document.getElementById('tel-potencia-bar').style.width = pct.toFixed(1) + '%';
+      document.getElementById('tel-potencia-pct').textContent = Math.round((state.powerMW/REAL.POWER_MW)*100) + '%';
+      document.getElementById('tel-ute').textContent = state.uteMW.toFixed(1);
+      document.getElementById('tel-cammesa').textContent = state.cammesaMW.toFixed(1);
+
+      document.getElementById('tel-freq').innerHTML = state.freq.toFixed(2) + '<small>Hz</small>';
+
+      var split = splitTurbines(state.turbinesActive);
+      document.getElementById('tel-turbinas-num').textContent = state.turbinesActive + '/14';
+      document.getElementById('tel-turbinas-ar').textContent = split.arg;
+      document.getElementById('tel-turbinas-uy').textContent = split.uru;
+
+      updateCompass();
+    }
+
+    // ============================================================
+    //  UI: EVENTOS DE CONTROL
+    // ============================================================
+    function setupControlsUI(){
+      document.querySelectorAll('.sg-view-btns .sg-btn').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          goToView(this.getAttribute('data-view'));
+        });
+      });
+
+      var flowSlider = document.getElementById('flow-slider');
+      var flowLabel = document.getElementById('flow-label');
+      flowSlider.addEventListener('input', function(){
+        state.flowTotal = parseFloat(this.value);
+        flowLabel.textContent = Math.round(state.flowTotal) + ' m³/s';
+      });
+
+      var embalseSlider = document.getElementById('embalse-slider');
+      embalseSlider.addEventListener('input', function(){
+        state.cotaEmbalseSlider = parseFloat(this.value);
+      });
+
+      var turbineSlider = document.getElementById('turbine-slider');
+      turbineSlider.addEventListener('input', function(){
+        state.turbinesActive = parseInt(this.value, 10);
+        updateTurbineIndicators();
+      });
+
+      var spillToggle = document.getElementById('spillway-toggle');
+      spillToggle.addEventListener('change', function(){
+        state.spillwayOpen = this.checked;
+      });
+
+      var xrayBtn = document.getElementById('xray-toggle');
+      xrayBtn.addEventListener('click', function(){ setXray(!state.xray); });
+
+      var telToggle = document.getElementById('sg-telemetry-toggle');
+      var telPanel = document.getElementById('sg-telemetry');
+      telToggle.addEventListener('click', function(){
+        telPanel.classList.toggle('show');
+        telToggle.classList.toggle('raised', telPanel.classList.contains('show'));
+        telToggle.textContent = telPanel.classList.contains('show') ? sg3dT('tel-toggle-open') : sg3dT('tel-toggle-closed');
+      });
+
+      var ftHead = document.getElementById('ft-head');
+      var ftPanel = document.getElementById('sg-factsheet');
+      ftHead.addEventListener('click', function(){ ftPanel.classList.toggle('collapsed'); });
+
+      document.getElementById('tour-open-btn').addEventListener('click', openTour);
+      document.getElementById('tour-close-btn').addEventListener('click', closeTour);
+      document.getElementById('tour-next-btn').addEventListener('click', tourNext);
+      document.getElementById('tour-prev-btn').addEventListener('click', tourPrev);
+    }
+
+    // ============================================================
+    //  RESIZE Y BUCLE PRINCIPAL
+    // ============================================================
+    function onWindowResize(){
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    var hudAccum = 0;
+    function animate(){
+      requestAnimationFrame(animate);
+      var dt = Math.min(clock.getDelta(), 0.05);
+
+      updatePhysics(dt);
+      updateWaterSurfaces(dt);
+      updateMechanics(dt);
+      updateParticles(dt);
+      animateSpillwayGates(dt);
+      updateCameraTransition(dt);
+      controls.update();
+
+      hudAccum += dt;
+      if(hudAccum > 0.08){
+        hudAccum = 0;
+        updateHUD();
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    // ============================================================
+    //  INICIALIZACIÓN
+    // ============================================================
+    initScene();
+    buildTourSteps();
+    setupControlsUI();
+    updateHUD();
+    animate();
+
+    // ---- i18n live-refresh hook (used by sg3dApplyLang, defined further below in this
+    // same <script>, once the language changes while the tour drawer or the mobile
+    // telemetry toggle are already showing dynamically-generated text) ----
+    window.sg3dRefreshDynamic = function(){
+      if (tourState.open) renderTourStep();
+      var telToggleEl = document.getElementById('sg-telemetry-toggle');
+      var telPanelEl = document.getElementById('sg-telemetry');
+      if (telToggleEl && telPanelEl){
+        telToggleEl.textContent = telPanelEl.classList.contains('show') ? sg3dT('tel-toggle-open') : sg3dT('tel-toggle-closed');
+      }
+    };
+    try{ window.parent.postMessage({ type:'sg3d-ready' }, '*'); }catch(e){}
+
+  }
+
+})();
+
+  // ============================================================
+  //  i18n (v2 addition, on top of the artifact original) — the simulator is a
+  //  standalone document embedded in an <iframe> and does not share the host
+  //  page's I18N system, but the host site is trilingual, so it needs its own
+  //  lightweight translation layer that the parent page can drive.
+  // ============================================================
+  var SG3D_I18N = {
+  "es": {
+    "fatal-title": "No se pudo iniciar el motor 3D",
+    "header-title": "CENTRO DE DESPACHO UNIFICADO",
+    "header-subtitle": "COMISIÓN TÉCNICA MIXTA DE SALTO GRANDE — RÍO URUGUAY — GEMELO DIGITAL 3D",
+    "chip-ar": "ARGENTINA · CAMMESA · O",
+    "chip-uy": "URUGUAY · UTE · E",
+    "status-active": "EN SERVICIO / DESPACHO ACTIVO",
+    "compass-n": "N",
+    "compass-s": "S",
+    "compass-e": "E",
+    "compass-o": "O",
+    "tel-toggle-closed": "TELEMETRÍA ▾",
+    "tel-toggle-open": "TELEMETRÍA ▴",
+    "tele-embalse-label": "Cota de embalse (aguas arriba)",
+    "tele-embalse-min": "MÍN 30,00",
+    "tele-embalse-normal": "NORMAL 35,00",
+    "tele-embalse-max": "EXTR. 37,00",
+    "tele-restitucion-label": "Cota de restitución (aguas abajo)",
+    "tele-salto-label": "Salto neto calculado (H)",
+    "tele-caudal-label": "Caudal turbinado",
+    "tele-potencia-label": "Potencia activa total",
+    "tele-ute-label": "UTE (UY) 50%",
+    "tele-cammesa-label": "CAMMESA (AR) 50%",
+    "tele-freq-label": "Frecuencia del sistema",
+    "tele-turbinas-label": "Turbinas en servicio",
+    "tele-margin-ar": "MARGEN AR (O)",
+    "tele-margin-uy": "MARGEN UY (E)",
+    "ft-title": "FICHA TÉCNICA REAL",
+    "ft-1-k": "Potencia instalada",
+    "ft-1-v": "1.890 MW",
+    "ft-2-k": "Turbinas Kaplan",
+    "ft-2-v": "14 (7+7) · 75 rpm",
+    "ft-3-k": "Rodete Kaplan",
+    "ft-3-v": "Ø 8,5 m · 6 álabes",
+    "ft-4-k": "Salto nominal",
+    "ft-4-v": "25,3 m (18–26 m)",
+    "ft-5-k": "Caudal nominal/unidad",
+    "ft-5-v": "610 m³/s",
+    "ft-6-k": "Caudal turbinado máx.",
+    "ft-6-v": "≈8.540 m³/s",
+    "ft-7-k": "Vertedero central",
+    "ft-7-v": "19 vanos · 361 m",
+    "ft-8-k": "Cota de coronamiento",
+    "ft-8-v": "39,00 m s.n.m.",
+    "ft-9-k": "Longitud total complejo",
+    "ft-9-v": "2.520 m",
+    "ft-10-k": "Subestaciones",
+    "ft-10-v": "500 kV · SADI / SIN",
+    "ft-11-k": "Embalse",
+    "ft-11-v": "783 km² / 5.000 hm³",
+    "ft-12-k": "Gen. media anual",
+    "ft-12-v": "8.546 GWh",
+    "ft-13-k": "Reparto binacional",
+    "ft-13-v": "50% UTE / 50% CAMMESA",
+    "ctl-view-label": "Vista de cámara guiada",
+    "view-btn-panoramica": "Panorámica Binacional",
+    "view-btn-vertedero": "Vertedero Central",
+    "view-btn-kaplan": "Corte Técnico Kaplan",
+    "view-btn-puente": "Puente Internacional",
+    "view-btn-subestaciones": "Subestaciones 500kV",
+    "ctl-flow-label": "Caudal de entrada del sistema",
+    "ctl-spillway-label": "Compuertas de alivio (19 vanos)",
+    "ctl-xray-btn": "◈ Modo Rayos-X / Corte Técnico",
+    "ctl-tour-open-btn": "▶ Tour Educativo Guiado",
+    "tour-panel-title": "TOUR EDUCATIVO GUIADO",
+    "tour-prev-btn": "◀ Anterior",
+    "tour-btn-next": "Siguiente ▶",
+    "tour-btn-restart": "Reiniciar ⟲",
+    "tour-step-prefix": "PASO",
+    "tour-view-prefix": "VISTA:",
+    "view-panoramica": "PANORÁMICA BINACIONAL",
+    "view-vertedero": "VERTEDERO CENTRAL",
+    "view-kaplan": "CORTE TÉCNICO KAPLAN",
+    "view-puente": "PUENTE INTERNACIONAL",
+    "view-subestaciones": "SUBESTACIONES 500kV",
+    "hint": "Arrastrá para orbitar la cámara · Rueda / pellizco para zoom · Eje N/S/E/O real",
+    "tour-1-title": "El embalse y la cota: energía potencial",
+    "tour-1-text": "El Lago Salto Grande cubre <b>783 km²</b> y almacena <b>5.000 hm³</b> de agua del río Uruguay, contenidos por el eje de la presa que corre de <b>Oeste-Noroeste a Este-Sureste</b>. Esa masa de agua retenida a una cota elevada (normal: <b>35,00 m s.n.m.</b>) constituye energía potencial gravitatoria: cuanto mayor la diferencia de altura con la restitución aguas abajo, mayor la energía disponible por cada m³ turbinado.",
+    "tour-1-fact": "Salto neto de diseño: 25,3 m (rango operativo 18–26 m)",
+    "tour-2-title": "Toma de agua y compuertas de mantenimiento",
+    "tour-2-text": "A cota aproximada de <b>20 m s.n.m.</b>, el agua ingresa por una <b>reja de toma</b> que retiene sedimentos y objetos flotantes, y por <b>compuertas de mantenimiento</b> que permiten aislar cada una de las 14 unidades para inspección sin detener las restantes.",
+    "tour-2-fact": "Cada margen (ARG/URU) tiene 7 tomas de agua independientes",
+    "tour-3-title": "Tubería forzada acodada: energía cinética",
+    "tour-3-text": "El agua desciende por la <b>tubería forzada de hormigón acodada</b>, cuyo codo característico redirige el flujo hacia la cámara espiral. Aquí la energía potencial se transforma en <b>energía cinética</b>: la velocidad del agua aumenta a medida que cae hacia la turbina.",
+    "tour-3-fact": "Caudal nominal por unidad: 610 m³/s (≈8.540 m³/s con las 14 unidades)",
+    "tour-4-title": "Turbina Kaplan de eje vertical y paso variable",
+    "tour-4-text": "El agua pasa por la <b>cámara espiral</b> y el <b>distribuidor Fink</b>, que regula el caudal admitido. Luego incide sobre el <b>rodete Kaplan</b> de 8,5 m de diámetro y 6 álabes orientables, montado en un eje vertical: la energía cinética se convierte en energía mecánica de rotación, a una velocidad síncrona nominal de <b>75 rpm</b> (0,8 s por vuelta) a plena carga.",
+    "tour-4-fact": "14 turbinas Kaplan de eje vertical — 135 MW cada una (1.890 MW instalados)",
+    "tour-5-title": "Rotor / estator y la ley de Faraday",
+    "tour-5-text": "El eje transmite el giro al <b>rotor del generador</b>, cuyos polos magnéticos giran dentro del <b>estator</b> bobinado. Por <b>inducción electromagnética</b> (Ley de Faraday), ese campo magnético variable induce una corriente alterna en los devanados: nace la energía eléctrica, sincronizada a la frecuencia de red.",
+    "tour-5-fact": "Frecuencia nominal generada: 50,00 Hz (± 0,02 Hz)",
+    "tour-6-title": "Subestaciones 500 kV y el reparto binacional",
+    "tour-6-text": "La energía generada se eleva a <b>500 kV</b> en las subestaciones transformadoras de ambas márgenes y se inyecta hacia el <b>SADI</b> (Argentina) y el <b>SIN</b> (Uruguay). Por tratado binacional, la <b>Comisión Técnica Mixta de Salto Grande (CTM)</b> reparte la potencia siempre en partes exactamente iguales: 50% CAMMESA / 50% UTE.",
+    "tour-6-fact": "Generación media anual histórica: 8.546 GWh"
+  },
+  "en": {
+    "fatal-title": "Could not start the 3D engine",
+    "header-title": "UNIFIED DISPATCH CENTER",
+    "header-subtitle": "JOINT TECHNICAL COMMISSION OF SALTO GRANDE — URUGUAY RIVER — 3D DIGITAL TWIN",
+    "chip-ar": "ARGENTINA · CAMMESA · W",
+    "chip-uy": "URUGUAY · UTE · E",
+    "status-active": "IN SERVICE / ACTIVE DISPATCH",
+    "compass-n": "N",
+    "compass-s": "S",
+    "compass-e": "E",
+    "compass-o": "W",
+    "tel-toggle-closed": "TELEMETRY ▾",
+    "tel-toggle-open": "TELEMETRY ▴",
+    "tele-embalse-label": "Reservoir level (upstream)",
+    "tele-embalse-min": "MIN 30.00",
+    "tele-embalse-normal": "NORMAL 35.00",
+    "tele-embalse-max": "MAX 37.00",
+    "tele-restitucion-label": "Tailwater level (downstream)",
+    "tele-salto-label": "Calculated net head (H)",
+    "tele-caudal-label": "Turbined flow",
+    "tele-potencia-label": "Total active power",
+    "tele-ute-label": "UTE (UY) 50%",
+    "tele-cammesa-label": "CAMMESA (AR) 50%",
+    "tele-freq-label": "System frequency",
+    "tele-turbinas-label": "Turbines in service",
+    "tele-margin-ar": "AR BANK (W)",
+    "tele-margin-uy": "UY BANK (E)",
+    "ft-title": "REAL TECHNICAL DATA SHEET",
+    "ft-1-k": "Installed capacity",
+    "ft-1-v": "1,890 MW",
+    "ft-2-k": "Kaplan turbines",
+    "ft-2-v": "14 (7+7) · 75 rpm",
+    "ft-3-k": "Kaplan runner",
+    "ft-3-v": "Ø 8.5 m · 6 blades",
+    "ft-4-k": "Rated head",
+    "ft-4-v": "25.3 m (18–26 m)",
+    "ft-5-k": "Rated flow/unit",
+    "ft-5-v": "610 m³/s",
+    "ft-6-k": "Max. turbined flow",
+    "ft-6-v": "≈8,540 m³/s",
+    "ft-7-k": "Central spillway",
+    "ft-7-v": "19 gates · 361 m",
+    "ft-8-k": "Crest elevation",
+    "ft-8-v": "39.00 m a.s.l.",
+    "ft-9-k": "Total complex length",
+    "ft-9-v": "2,520 m",
+    "ft-10-k": "Substations",
+    "ft-10-v": "500 kV · SADI / SIN",
+    "ft-11-k": "Reservoir",
+    "ft-11-v": "783 km² / 5,000 hm³",
+    "ft-12-k": "Avg. annual generation",
+    "ft-12-v": "8,546 GWh",
+    "ft-13-k": "Binational split",
+    "ft-13-v": "50% UTE / 50% CAMMESA",
+    "ctl-view-label": "Guided camera view",
+    "view-btn-panoramica": "Binational Overview",
+    "view-btn-vertedero": "Central Spillway",
+    "view-btn-kaplan": "Kaplan Technical Cutaway",
+    "view-btn-puente": "International Bridge",
+    "view-btn-subestaciones": "500kV Substations",
+    "ctl-flow-label": "System inflow",
+    "ctl-spillway-label": "Spillway gates (19 bays)",
+    "ctl-xray-btn": "◈ X-Ray Mode / Technical Cutaway",
+    "ctl-tour-open-btn": "▶ Guided Educational Tour",
+    "tour-panel-title": "GUIDED EDUCATIONAL TOUR",
+    "tour-prev-btn": "◀ Previous",
+    "tour-btn-next": "Next ▶",
+    "tour-btn-restart": "Restart ⟲",
+    "tour-step-prefix": "STEP",
+    "tour-view-prefix": "VIEW:",
+    "view-panoramica": "BINATIONAL OVERVIEW",
+    "view-vertedero": "CENTRAL SPILLWAY",
+    "view-kaplan": "KAPLAN TECHNICAL CUTAWAY",
+    "view-puente": "INTERNATIONAL BRIDGE",
+    "view-subestaciones": "500kV SUBSTATIONS",
+    "hint": "Drag to orbit the camera · Wheel / pinch to zoom · Real N/S/E/W axis",
+    "tour-1-title": "The reservoir and its level: potential energy",
+    "tour-1-text": "Lake Salto Grande covers <b>783 km²</b> and stores <b>5,000 hm³</b> of Uruguay River water, held back by the dam axis running <b>West-Northwest to East-Southeast</b>. That mass of water held at an elevated level (normal: <b>35.00 m a.s.l.</b>) is gravitational potential energy: the greater the height difference with the downstream tailwater, the more energy available per m³ turbined.",
+    "tour-1-fact": "Design net head: 25.3 m (operating range 18–26 m)",
+    "tour-2-title": "Water intake and maintenance gates",
+    "tour-2-text": "At an elevation of roughly <b>20 m a.s.l.</b>, water enters through a <b>trash rack</b> that holds back sediment and floating debris, and through <b>maintenance gates</b> that let each of the 14 units be isolated for inspection without stopping the rest.",
+    "tour-2-fact": "Each bank (AR/UY) has 7 independent water intakes",
+    "tour-3-title": "Elbow penstock: kinetic energy",
+    "tour-3-text": "Water flows down the <b>elbow-shaped concrete penstock</b>, whose characteristic bend redirects the flow toward the spiral case. Here potential energy turns into <b>kinetic energy</b>: the water speeds up as it falls toward the turbine.",
+    "tour-3-fact": "Rated flow per unit: 610 m³/s (≈8,540 m³/s with all 14 units)",
+    "tour-4-title": "Vertical-shaft, variable-pitch Kaplan turbine",
+    "tour-4-text": "Water passes through the <b>spiral case</b> and the <b>Fink distributor</b>, which regulates the admitted flow. It then strikes the <b>Kaplan runner</b>, 8.5 m in diameter with 6 adjustable blades, mounted on a vertical shaft: kinetic energy turns into rotational mechanical energy, at a rated synchronous speed of <b>75 rpm</b> (0.8 s per turn) at full load.",
+    "tour-4-fact": "14 vertical-shaft Kaplan turbines — 135 MW each (1,890 MW installed)",
+    "tour-5-title": "Rotor / stator and Faraday's law",
+    "tour-5-text": "The shaft transmits its rotation to the <b>generator rotor</b>, whose magnetic poles spin inside the wound <b>stator</b>. Through <b>electromagnetic induction</b> (Faraday's Law), that varying magnetic field induces an alternating current in the windings: electrical energy is born, synchronized to the grid frequency.",
+    "tour-5-fact": "Rated generated frequency: 50.00 Hz (± 0.02 Hz)",
+    "tour-6-title": "500 kV substations and the binational split",
+    "tour-6-text": "The generated power is stepped up to <b>500 kV</b> at the transformer substations on both banks and fed into <b>SADI</b> (Argentina) and <b>SIN</b> (Uruguay). Under the binational treaty, the <b>Joint Technical Commission of Salto Grande (CTM)</b> always splits the power in exactly equal shares: 50% CAMMESA / 50% UTE.",
+    "tour-6-fact": "Historical average annual generation: 8,546 GWh"
+  },
+  "pt": {
+    "fatal-title": "Não foi possível iniciar o motor 3D",
+    "header-title": "CENTRO DE DESPACHO UNIFICADO",
+    "header-subtitle": "COMISSÃO TÉCNICA MISTA DE SALTO GRANDE — RIO URUGUAI — GÊMEO DIGITAL 3D",
+    "chip-ar": "ARGENTINA · CAMMESA · O",
+    "chip-uy": "URUGUAI · UTE · L",
+    "status-active": "EM SERVIÇO / DESPACHO ATIVO",
+    "compass-n": "N",
+    "compass-s": "S",
+    "compass-e": "E",
+    "compass-o": "O",
+    "tel-toggle-closed": "TELEMETRIA ▾",
+    "tel-toggle-open": "TELEMETRIA ▴",
+    "tele-embalse-label": "Cota do reservatório (montante)",
+    "tele-embalse-min": "MÍN 30,00",
+    "tele-embalse-normal": "NORMAL 35,00",
+    "tele-embalse-max": "EXTR. 37,00",
+    "tele-restitucion-label": "Cota de restituição (jusante)",
+    "tele-salto-label": "Queda líquida calculada (H)",
+    "tele-caudal-label": "Vazão turbinada",
+    "tele-potencia-label": "Potência ativa total",
+    "tele-ute-label": "UTE (UY) 50%",
+    "tele-cammesa-label": "CAMMESA (AR) 50%",
+    "tele-freq-label": "Frequência do sistema",
+    "tele-turbinas-label": "Turbinas em serviço",
+    "tele-margin-ar": "MARGEM AR (O)",
+    "tele-margin-uy": "MARGEM UY (L)",
+    "ft-title": "FICHA TÉCNICA REAL",
+    "ft-1-k": "Potência instalada",
+    "ft-1-v": "1.890 MW",
+    "ft-2-k": "Turbinas Kaplan",
+    "ft-2-v": "14 (7+7) · 75 rpm",
+    "ft-3-k": "Rotor Kaplan",
+    "ft-3-v": "Ø 8,5 m · 6 pás",
+    "ft-4-k": "Queda nominal",
+    "ft-4-v": "25,3 m (18–26 m)",
+    "ft-5-k": "Vazão nominal/unidade",
+    "ft-5-v": "610 m³/s",
+    "ft-6-k": "Vazão turbinada máx.",
+    "ft-6-v": "≈8.540 m³/s",
+    "ft-7-k": "Vertedouro central",
+    "ft-7-v": "19 comportas · 361 m",
+    "ft-8-k": "Cota de coroamento",
+    "ft-8-v": "39,00 m s.n.m.",
+    "ft-9-k": "Comprimento total do complexo",
+    "ft-9-v": "2.520 m",
+    "ft-10-k": "Subestações",
+    "ft-10-v": "500 kV · SADI / SIN",
+    "ft-11-k": "Reservatório",
+    "ft-11-v": "783 km² / 5.000 hm³",
+    "ft-12-k": "Geração média anual",
+    "ft-12-v": "8.546 GWh",
+    "ft-13-k": "Repartição binacional",
+    "ft-13-v": "50% UTE / 50% CAMMESA",
+    "ctl-view-label": "Vista de câmera guiada",
+    "view-btn-panoramica": "Panorâmica Binacional",
+    "view-btn-vertedero": "Vertedouro Central",
+    "view-btn-kaplan": "Corte Técnico Kaplan",
+    "view-btn-puente": "Ponte Internacional",
+    "view-btn-subestaciones": "Subestações 500kV",
+    "ctl-flow-label": "Vazão de entrada do sistema",
+    "ctl-spillway-label": "Comportas do vertedouro (19 vãos)",
+    "ctl-xray-btn": "◈ Modo Raio-X / Corte Técnico",
+    "ctl-tour-open-btn": "▶ Tour Educativo Guiado",
+    "tour-panel-title": "TOUR EDUCATIVO GUIADO",
+    "tour-prev-btn": "◀ Anterior",
+    "tour-btn-next": "Próximo ▶",
+    "tour-btn-restart": "Reiniciar ⟲",
+    "tour-step-prefix": "PASSO",
+    "tour-view-prefix": "VISTA:",
+    "view-panoramica": "PANORÂMICA BINACIONAL",
+    "view-vertedero": "VERTEDOURO CENTRAL",
+    "view-kaplan": "CORTE TÉCNICO KAPLAN",
+    "view-puente": "PONTE INTERNACIONAL",
+    "view-subestaciones": "SUBESTAÇÕES 500kV",
+    "hint": "Arraste para orbitar a câmera · Roda / pinça para zoom · Eixo N/S/L/O real",
+    "tour-1-title": "O reservatório e a cota: energia potencial",
+    "tour-1-text": "O Lago Salto Grande cobre <b>783 km²</b> e armazena <b>5.000 hm³</b> de água do rio Uruguai, contidos pelo eixo da barragem que vai de <b>Oeste-Noroeste a Leste-Sudeste</b>. Essa massa de água retida numa cota elevada (normal: <b>35,00 m s.n.m.</b>) constitui energia potencial gravitacional: quanto maior a diferença de altura com a restituição a jusante, maior a energia disponível por cada m³ turbinado.",
+    "tour-1-fact": "Queda líquida de projeto: 25,3 m (faixa operacional 18–26 m)",
+    "tour-2-title": "Tomada de água e comportas de manutenção",
+    "tour-2-text": "Numa cota aproximada de <b>20 m s.n.m.</b>, a água entra por uma <b>grade de tomada</b> que retém sedimentos e objetos flutuantes, e por <b>comportas de manutenção</b> que permitem isolar cada uma das 14 unidades para inspeção sem parar as demais.",
+    "tour-2-fact": "Cada margem (AR/UY) tem 7 tomadas de água independentes",
+    "tour-3-title": "Tubulação forçada em cotovelo: energia cinética",
+    "tour-3-text": "A água desce pela <b>tubulação forçada de concreto em cotovelo</b>, cuja curva característica redireciona o fluxo para a câmara espiral. Aqui a energia potencial se transforma em <b>energia cinética</b>: a velocidade da água aumenta à medida que cai em direção à turbina.",
+    "tour-3-fact": "Vazão nominal por unidade: 610 m³/s (≈8.540 m³/s com as 14 unidades)",
+    "tour-4-title": "Turbina Kaplan de eixo vertical e passo variável",
+    "tour-4-text": "A água passa pela <b>câmara espiral</b> e pelo <b>distribuidor Fink</b>, que regula a vazão admitida. Em seguida incide sobre o <b>rotor Kaplan</b> de 8,5 m de diâmetro e 6 pás orientáveis, montado num eixo vertical: a energia cinética se converte em energia mecânica de rotação, numa velocidade síncrona nominal de <b>75 rpm</b> (0,8 s por volta) a plena carga.",
+    "tour-4-fact": "14 turbinas Kaplan de eixo vertical — 135 MW cada uma (1.890 MW instalados)",
+    "tour-5-title": "Rotor / estator e a lei de Faraday",
+    "tour-5-text": "O eixo transmite o giro ao <b>rotor do gerador</b>, cujos polos magnéticos giram dentro do <b>estator</b> bobinado. Por <b>indução eletromagnética</b> (Lei de Faraday), esse campo magnético variável induz uma corrente alternada nos enrolamentos: nasce a energia elétrica, sincronizada à frequência da rede.",
+    "tour-5-fact": "Frequência nominal gerada: 50,00 Hz (± 0,02 Hz)",
+    "tour-6-title": "Subestações de 500 kV e a repartição binacional",
+    "tour-6-text": "A energia gerada é elevada a <b>500 kV</b> nas subestações transformadoras de ambas as margens e injetada no <b>SADI</b> (Argentina) e no <b>SIN</b> (Uruguai). Por tratado binacional, a <b>Comissão Técnica Mista de Salto Grande (CTM)</b> reparte a potência sempre em partes exatamente iguais: 50% CAMMESA / 50% UTE.",
+    "tour-6-fact": "Geração média anual histórica: 8.546 GWh"
+  }
+};
+
+  function sg3dT(key){
+    var lang = window.SG3D_LANG || 'es';
+    var dict = SG3D_I18N[lang] || SG3D_I18N.es;
+    if (dict[key] != null) return dict[key];
+    return SG3D_I18N.es[key] != null ? SG3D_I18N.es[key] : key;
+  }
+  function sg3dTourField(stepIndex, field, fallback){
+    var lang = window.SG3D_LANG || 'es';
+    if (lang === 'es') return fallback;
+    var dict = SG3D_I18N[lang];
+    var key = 'tour-' + (stepIndex + 1) + '-' + field;
+    return (dict && dict[key] != null) ? dict[key] : fallback;
+  }
+
+  function sg3dApplyLang(lang){
+    var dict = SG3D_I18N[lang] || SG3D_I18N.es;
+    window.SG3D_LANG = SG3D_I18N[lang] ? lang : 'es';
+    document.querySelectorAll('[data-i18n]').forEach(function(el){
+      var k = el.getAttribute('data-i18n');
+      if (dict[k] != null) el.textContent = dict[k];
+    });
+    document.documentElement.setAttribute('lang', lang);
+    // refresh anything the tour / mobile telemetry toggle already rendered
+    // dynamically in the previous language
+    if (typeof window.sg3dRefreshDynamic === 'function') window.sg3dRefreshDynamic();
+  }
+
+  var qLang = new URLSearchParams(location.search).get('lang');
+  sg3dApplyLang(qLang && SG3D_I18N[qLang] ? qLang : 'es');
+
+  window.addEventListener('message', function(e){
+    if (e && e.data && e.data.type === 'sg3d-lang' && SG3D_I18N[e.data.lang]) sg3dApplyLang(e.data.lang);
+  });
+</script>
+</body>
+</html>
