@@ -1,6 +1,6 @@
 // Energimundo — service worker. Bump CACHE_NAME on every publish so visitors
 // with an already-installed app pick up the new content instead of a stale copy.
-const CACHE_NAME = "energimundo-v46";
+const CACHE_NAME = "energimundo-v47";
 const ASSETS = [
   "./",
   "./index.html",
@@ -32,6 +32,9 @@ const ASSETS = [
   "./img-wind-eolica-hq.jpg",
   "./img-biomass-wall.jpg",
   "./img-cronomundo-hq.jpg",
+  "./img-fish-dorado.jpg",
+  "./img-fish-boga.jpg",
+  "./img-fish-surubi.jpg",
   "./img-timeline-icons.jpg",
 ];
 
