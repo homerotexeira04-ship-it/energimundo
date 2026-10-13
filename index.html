@@ -1145,6 +1145,66 @@
   .sp-art.sp-photo img{ width:100%; height:100%; object-fit:cover; display:block }
   .sp-credit{ margin:10px 0 0; font-family:var(--font); font-size:.82rem; line-height:1.45; color:var(--muted) }
   .sp-credit a{ color:inherit; text-decoration:underline; text-underline-offset:2px }
+
+  /* ================= v48 · the species photos swim =================
+     Each photo is split into two layers: the fish (cut out, sharp) and its own background
+     with the fish painted out (softly blurred, like depth of field). At rest they line up
+     exactly with the original photo. When the cards are on screen the fish glides back and
+     forth with a slight bob and tilt toward the way it faces (--dir: -1 head left, 1 head
+     right), its body flexes gently, the background drifts the other way, light ripples cross
+     the water and a few bubbles rise. Tapping a card makes that fish dart forward.
+     Transform/opacity only; paused off screen (.swim-live) and absent with reduced motion. */
+  .sp-swim{ cursor:pointer; isolation:isolate }
+  .sp-swim .sp-bg{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; transform:scale(1.06) }
+  .sp-swim .sp-fish{ position:absolute; z-index:1; display:block; transform-origin:50% 55% }
+  .sp-swim .sp-fish img{ display:block; width:100%; height:auto; transform-origin:calc(50% - var(--dir)*30%) 50% }
+  .sp-water{ position:absolute; inset:0; z-index:2; pointer-events:none; overflow:hidden }
+  .sp-water::before{
+    content:""; position:absolute; inset:-40%; opacity:.5; mix-blend-mode:soft-light;
+    background:
+      radial-gradient(ellipse 70px 20px at 30% 40%, rgba(255,255,255,.55), transparent 70%),
+      radial-gradient(ellipse 54px 16px at 72% 62%, rgba(255,255,255,.45), transparent 70%),
+      radial-gradient(ellipse 40px 14px at 55% 18%, rgba(255,255,255,.4), transparent 70%);
+    background-size:170px 110px;
+  }
+  .sp-studio .sp-water::before{ display:none }   /* studio shot on black: no light ripples, only bubbles */
+  .sp-water i{ position:absolute; bottom:-14px; width:7px; height:7px; border-radius:50%; opacity:0;
+    background:radial-gradient(circle at 35% 35%, rgba(255,255,255,.95), rgba(255,255,255,.25) 45%, rgba(255,255,255,.05) 70%);
+    box-shadow:0 0 0 1px rgba(255,255,255,.35) }
+  .sp-water i:nth-child(1){ left:18% } .sp-water i:nth-child(2){ left:36%; width:5px; height:5px }
+  .sp-water i:nth-child(3){ left:63%; width:9px; height:9px } .sp-water i:nth-child(4){ left:82%; width:5px; height:5px }
+  @media (prefers-reduced-motion:no-preference){
+    .swim-live .sp-swim .sp-fish{ animation:spGlide 9s ease-in-out infinite }
+    .swim-live .sp-swim .sp-fish img{ animation:spFlex 1.25s ease-in-out infinite }
+    .swim-live .sp-swim .sp-bg{ animation:spDrift 9s ease-in-out infinite }
+    .swim-live .sp-water::before{ animation:spRipple 7s linear infinite }
+    .swim-live .sp-water i{ animation:spBubble 5.5s ease-in infinite }
+    .swim-live .sp-water i:nth-child(2){ animation-delay:1.6s; animation-duration:6.4s }
+    .swim-live .sp-water i:nth-child(3){ animation-delay:3.1s; animation-duration:5s }
+    .swim-live .sp-water i:nth-child(4){ animation-delay:4.4s; animation-duration:6.8s }
+    /* each card on its own rhythm, so the three never move in lockstep */
+    .swim-live .sp-card:nth-child(2) .sp-fish, .swim-live .sp-card:nth-child(2) .sp-bg{ animation-duration:7.6s; animation-delay:-2.4s }
+    .swim-live .sp-card:nth-child(3) .sp-fish, .swim-live .sp-card:nth-child(3) .sp-bg{ animation-duration:10.5s; animation-delay:-5.1s }
+    .swim-live .sp-card:nth-child(3) .sp-fish img{ animation-duration:1.6s }
+    .swim-live .sp-card:nth-child(2) .sp-water i{ animation-delay:.7s }
+    .sp-swim.dart .sp-fish{ animation:spDart .95s cubic-bezier(.2,.8,.2,1) }
+    .sp-swim.dart .sp-fish img{ animation:spFlex .32s ease-in-out 3 }
+  }
+  @keyframes spGlide{
+    0%,100%{ transform:translate3d(0,0,0) rotate(0) }
+    30%{ transform:translate3d(calc(var(--dir)*3.2%),-4%,0) rotate(calc(var(--dir)*-1.3deg)) }
+    55%{ transform:translate3d(calc(var(--dir)*4.2%),2.5%,0) rotate(calc(var(--dir)*.9deg)) }
+    80%{ transform:translate3d(calc(var(--dir)*1.2%),3.5%,0) rotate(calc(var(--dir)*-.4deg)) }
+  }
+  @keyframes spFlex{ 0%,100%{ transform:skewY(0) scaleX(1) } 50%{ transform:skewY(calc(var(--dir)*.7deg)) scaleX(.988) } }
+  @keyframes spDrift{ 0%,100%{ transform:scale(1.06) translate3d(0,0,0) } 50%{ transform:scale(1.06) translate3d(calc(var(--dir)*-1.4%),-.8%,0) } }
+  @keyframes spRipple{ from{ transform:translate3d(0,0,0) } to{ transform:translate3d(-170px,-110px,0) } }
+  @keyframes spBubble{ 0%{ transform:translate3d(0,0,0); opacity:0 } 12%{ opacity:.9 } 85%{ opacity:.7 } 100%{ transform:translate3d(6px,-230px,0); opacity:0 } }
+  @keyframes spDart{
+    0%{ transform:translate3d(0,0,0) }
+    35%{ transform:translate3d(calc(var(--dir)*10%),-2.5%,0) rotate(calc(var(--dir)*-1.5deg)) }
+    100%{ transform:translate3d(0,0,0) }
+  }
 </style>
 </head>
 <body>
@@ -1564,11 +1624,11 @@
         </symbol>
       </svg>
       <ul class="sp-grid">
-        <li class="sp-card"><div class="sp-art sp-photo"><img src="img-fish-dorado.jpg" width="793" height="396" loading="lazy" decoding="async" data-i18n-alt="alt-fish-1" alt="Foto de un dorado nadando: cuerpo dorado con hileras de puntos oscuros y una franja negra en la cola"></div>
+        <li class="sp-card"><div class="sp-art sp-photo sp-swim" style="--dir:-1"><img class="sp-bg" src="img-fish-dorado-bg.jpg" width="793" height="396" loading="lazy" decoding="async" alt=""><span class="sp-fish" style="left:10.088%;top:21.465%;width:86.381%"><img src="img-fish-dorado.webp" width="685" height="233" loading="lazy" decoding="async" data-i18n-alt="alt-fish-1" alt="Foto de un dorado nadando: cuerpo dorado con hileras de puntos oscuros y una franja negra en la cola"></span><span class="sp-water" aria-hidden="true"><i></i><i></i><i></i><i></i></span></div>
           <div class="sp-body"><h3 data-i18n="fish-1">Dorado</h3><p class="sp-sci" lang="la">Salminus brasiliensis</p><p class="sp-size" data-i18n="sp-1-size">Hasta 1 m y más de 30 kg</p><p class="sp-fact" data-i18n="sp-1-fact">Se alimenta de otros peces. En el río Paraná se registraron dorados que recorrieron 1.000 km.</p></div></li>
-        <li class="sp-card"><div class="sp-art sp-photo"><img src="img-fish-boga.jpg" width="960" height="480" loading="lazy" decoding="async" data-i18n-alt="alt-fish-2" alt="Foto de una boga junto al fondo del río, con grandes manchas oscuras en el costado"></div>
+        <li class="sp-card"><div class="sp-art sp-photo sp-swim" style="--dir:1"><img class="sp-bg" src="img-fish-boga-bg.jpg" width="960" height="480" loading="lazy" decoding="async" alt=""><span class="sp-fish" style="left:2.500%;top:13.333%;width:94.479%"><img src="img-fish-boga.webp" width="907" height="322" loading="lazy" decoding="async" data-i18n-alt="alt-fish-2" alt="Foto de una boga junto al fondo del río, con grandes manchas oscuras en el costado"></span><span class="sp-water" aria-hidden="true"><i></i><i></i><i></i><i></i></span></div>
           <div class="sp-body"><h3 data-i18n="fish-2">Boga</h3><p class="sp-sci" lang="la">Megaleporinus obtusidens</p><p class="sp-size" data-i18n="sp-2-size">Hasta 76 cm y casi 6 kg</p><p class="sp-fact" data-i18n="sp-2-fact">Come de todo y hace largas migraciones para reproducirse y alimentarse.</p></div></li>
-        <li class="sp-card"><div class="sp-art sp-photo"><img src="img-fish-surubi.jpg" width="914" height="457" loading="lazy" decoding="async" data-i18n-alt="alt-fish-3" alt="Foto de un surubí del río Paraná: bagre largo, gris claro, con manchas oscuras y largos barbillones"></div>
+        <li class="sp-card"><div class="sp-art sp-photo sp-swim sp-studio" style="--dir:-1"><img class="sp-bg" src="img-fish-surubi-bg.jpg" width="914" height="457" loading="lazy" decoding="async" alt=""><span class="sp-fish" style="left:2.079%;top:13.129%;width:97.812%"><img src="img-fish-surubi.webp" width="894" height="332" loading="lazy" decoding="async" data-i18n-alt="alt-fish-3" alt="Foto de un surubí del río Paraná: bagre largo, gris claro, con manchas oscuras y largos barbillones"></span><span class="sp-water" aria-hidden="true"><i></i><i></i><i></i><i></i></span></div>
           <div class="sp-body"><h3 data-i18n="fish-3">Surubí</h3><p class="sp-sci" lang="la">Pseudoplatystoma corruscans</p><p class="sp-size" data-i18n="sp-3-size">Más de 1,5 m y de 80 kg</p><p class="sp-fact" data-i18n="sp-3-fact">Un gran bagre de cuerpo manchado y largos barbillones, que se alimenta sobre todo de peces.</p></div></li>
       </ul>
       <p class="sp-note" data-i18n-html="sp-note">Por las esclusas también pasan los sábalos (<i>Prochilodus lineatus</i>).</p>
@@ -2955,6 +3015,29 @@
   sync();
 })();
 
+</script>
+<script>
+// ================= v48 · swimming species photos: run only while visible, tap to dart =================
+(function(){
+  var grid = document.querySelector(".sp-grid");
+  if (!grid) return;
+  if ("IntersectionObserver" in window) {
+    new IntersectionObserver(function(entries){
+      entries.forEach(function(e){ grid.classList.toggle("swim-live", e.isIntersecting); });
+    }, { rootMargin:"80px 0px" }).observe(grid);
+  } else {
+    grid.classList.add("swim-live");
+  }
+  grid.querySelectorAll(".sp-swim").forEach(function(card){
+    card.addEventListener("click", function(){
+      card.classList.remove("dart");
+      void card.offsetWidth;            // restart the dart even on a quick second tap
+      card.classList.add("dart");
+      clearTimeout(card._dartT);
+      card._dartT = setTimeout(function(){ card.classList.remove("dart"); }, 1000);
+    });
+  });
+})();
 </script>
 </body>
 </html>
